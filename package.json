@@ -1,0 +1,15 @@
+{
+  "name": "@openclaw/agent-team",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Dynamic multi-agent team orchestration for OpenClaw",
+  "type": "module",
+  "dependencies": {
+    "@sinclair/typebox": "0.34.48"
+  },
+  "openclaw": {
+    "extensions": [
+      "./index.ts"
+    ]
+  }
+}

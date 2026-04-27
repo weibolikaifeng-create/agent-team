@@ -1,0 +1,11 @@
+{
+  "id": "agent-team",
+  "name": "Agent Team",
+  "description": "Dynamic multi-agent team orchestration with template-based provisioning.",
+  "skills": ["./skills"],
+  "configSchema": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {}
+  }
+}
