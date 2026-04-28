@@ -1,8 +1,9 @@
 import fs from "node:fs/promises";
 import path from "node:path";
+import crypto from "node:crypto";
 import { Type } from "@sinclair/typebox";
 import type { AnyAgentTool } from "openclaw/plugin-sdk/agent-team";
-import { TEAM_DIR_NAME, MAX_WORKERS, MAX_SPAWN_DEPTH } from "../constants.js";
+import { TEAM_DIR_NAME, MAX_WORKERS, MAX_SPAWN_DEPTH, EXECUTIONS_DIR } from "../constants.js";
 import { generateSoulMd, generateAgentsMd } from "../soul-generator.js";
 import type { TeamStateManager } from "../team-state.js";
 import type { CollaborationMode, WorkerSpec } from "../templates.js";
@@ -55,6 +56,9 @@ const TeamProvisionSchema = Type.Object(
     task: Type.String({
       description: "The task this team will work on.",
     }),
+    session_key: Type.String({
+      description: "Session key to bind this team to the current session. Required for session-based team filtering.",
+    }),
   },
   { additionalProperties: false },
 );
@@ -69,6 +73,7 @@ type TeamProvisionParams = {
   workers?: WorkerSpec[];
   collaboration_mode?: CollaborationMode;
   task: string;
+  session_key: string;
 };
 
 type RuntimeConfig = {
@@ -99,7 +104,11 @@ export function createTeamProvisionTool(
       "Create a new multi-agent team. Provisions a Leader agent with workspace, SOUL.md, and AGENTS.md. The Leader will orchestrate workers via sessions_spawn.",
     parameters: TeamProvisionSchema,
     async execute(_toolCallId: string, params: TeamProvisionParams) {
-      const { team_id, task } = params;
+      const { task } = params;
+
+      // Auto-append short UUID suffix to ensure uniqueness.
+      const suffix = crypto.randomBytes(3).toString("hex");
+      const team_id = `${params.team_id}-${suffix}`;
 
       // Resolve template or custom config.
       const template = params.template_id
@@ -160,6 +169,9 @@ export function createTeamProvisionTool(
       await fs.mkdir(path.join(workspaceDir, "outputs"), { recursive: true });
       await fs.mkdir(path.join(workspaceDir, "scratch"), { recursive: true });
 
+      // Create executions directory for execution instances.
+      await fs.mkdir(path.join(teamDir, EXECUTIONS_DIR), { recursive: true });
+
       // Generate and write SOUL.md.
       const soulContent = generateSoulMd({
         teamId: team_id,
@@ -185,8 +197,11 @@ export function createTeamProvisionTool(
       const claudeMdPath = path.join(workspaceDir, "CLAUDE.md");
       try {
         await fs.symlink("AGENTS.md", claudeMdPath);
-      } catch {
-        // Symlink may already exist on re-provision.
+      } catch (err) {
+        // Ignore if symlink already exists, but log other errors.
+        if (err instanceof Error && (err as NodeJS.ErrnoException).code !== "EEXIST") {
+          console.warn(`[agent-team] Failed to create CLAUDE.md symlink: ${err.message}`);
+        }
       }
 
       // Register the Leader agent in config.
@@ -253,7 +268,10 @@ export function createTeamProvisionTool(
         collaborationMode,
         status: "ready",
         createdAt: new Date().toISOString(),
+        sessionKey: params.session_key,
+        executions: [],
       });
+      await teamState.saveToDisk(stateDir);
 
       return {
         content: [

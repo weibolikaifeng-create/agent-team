@@ -1,6 +1,10 @@
+import fs from "node:fs/promises";
+import path from "node:path";
 import { Type } from "@sinclair/typebox";
 import type { AnyAgentTool } from "openclaw/plugin-sdk/agent-team";
 import type { TeamStateManager } from "../team-state.js";
+import type { WorkerSpec } from "../templates.js";
+import { TEAM_DIR_NAME, EXECUTIONS_DIR, TODO_FILE, OUTPUT_DIR } from "../constants.js";
 
 const ChannelInfoSchema = Type.Object({
   channel: Type.String({ description: "Channel type: feishu, discord, slack, etc." }),
@@ -12,20 +16,36 @@ const TeamExecuteSchema = Type.Object(
   {
     team_id: Type.String({ description: "ID of the team to execute." }),
     task: Type.String({ description: "Task message to send to the Leader agent." }),
+    task_name: Type.Optional(
+      Type.String({ description: "Short task name for display (max 15 chars). AI-generated summary of the task." }),
+    ),
+    steps: Type.Optional(
+      Type.Array(Type.String(), {
+        description:
+          'Task-specific step descriptions for progress tracking. Generate based on the task and team workers. Example: ["创建 agent 任务分工", "拆解子任务并分配角色", "收集 AI 行业背景资料", "撰写 AI 技术分析文章"]. If omitted, steps are auto-generated from team workers.',
+      }),
+    ),
     channel_info: ChannelInfoSchema,
   },
   { additionalProperties: false },
 );
 
 type ChannelInfo = { channel: string; target: string; msg_id?: string };
+type TeamExecuteParams = {
+  team_id: string;
+  task: string;
+  task_name?: string;
+  steps?: string[];
+  channel_info: ChannelInfo;
+};
 
-export function createTeamExecuteToolCompat(teamState: TeamStateManager): AnyAgentTool {
+export function createTeamExecuteToolCompat(teamState: TeamStateManager, stateDir: string): AnyAgentTool {
   return {
     name: "team_execute",
     description:
-      "Start a team execution. Returns the sessions_send parameters you must call to activate the Leader agent. The Leader will push progress updates directly to the channel using the message tool.",
+      "Start a team execution. Creates an execution instance with todo.md and output/ directory. Returns the sessions_send parameters you must call to activate the Leader agent. The Leader will push progress updates directly to the channel using the message tool.",
     parameters: TeamExecuteSchema,
-    async execute(_toolCallId: string, params: { team_id: string; task: string; channel_info: ChannelInfo }) {
+    async execute(_toolCallId: string, params: TeamExecuteParams) {
       const { team_id, task, channel_info } = params;
       const team = teamState.getTeam(team_id);
       if (!team) {
@@ -39,10 +59,60 @@ export function createTeamExecuteToolCompat(teamState: TeamStateManager): AnyAge
         };
       }
 
-      teamState.updateStatus(team_id, "running");
+      // Check if there's already a running execution.
+      const hasRunningExecution = team.executions.some((e) => e.status === "running");
+      if (hasRunningExecution) {
+        return {
+          content: [
+            {
+              type: "text" as const,
+              text: JSON.stringify({
+                error: `Team "${team_id}" already has a running execution. Wait for it to complete before starting a new one.`,
+              }),
+            },
+          ],
+        };
+      }
 
-      // Embed channel_info into the task message so the Leader knows where to push progress updates
-      const taskWithCallback = `__channelInfo__: ${JSON.stringify(channel_info)}\n\n${task}`;
+      // Resolve steps: use provided steps or auto-generate from workers.
+      const steps = params.steps ?? generateDefaultSteps(team.workers);
+
+      // Generate execution instance.
+      const executionId = teamState.getNextExecutionId(team_id);
+      const execDir = path.join(stateDir, TEAM_DIR_NAME, team_id, EXECUTIONS_DIR, executionId);
+      const outputDir = path.join(execDir, OUTPUT_DIR);
+
+      // Create execution directory and output directory.
+      await fs.mkdir(outputDir, { recursive: true });
+
+      // Initialize todo.md with steps in pending state.
+      const taskName = params.task_name ?? team.teamName;
+      const todoLines = [
+        `# ${taskName}`,
+        "",
+        ...steps.map((s) => `- [ ] ${s}`),
+        "",
+        "状态: running",
+        `创建时间: ${new Date().toISOString()}`,
+      ];
+      await fs.writeFile(path.join(execDir, TODO_FILE), todoLines.join("\n"), "utf-8");
+
+      // Record execution instance.
+      teamState.addExecution(team_id, {
+        executionId,
+        taskPrompt: task,
+        taskName,
+        status: "running",
+        createdAt: new Date().toISOString(),
+      });
+      teamState.updateStatus(team_id, "running");
+      await teamState.saveToDisk(stateDir);
+
+      // Embed channel_info and executionId into the task message so the Leader knows where to push progress updates
+      const taskWithCallback =
+        `__channelInfo__: ${JSON.stringify(channel_info)}\n` +
+        `__executionId__: ${executionId}\n` +
+        `__execDir__: ${execDir}\n\n${task}`;
 
       return {
         content: [
@@ -53,6 +123,8 @@ export function createTeamExecuteToolCompat(teamState: TeamStateManager): AnyAge
                 teamId: team_id,
                 teamName: team.teamName,
                 leaderAgentId: team.leaderAgentId,
+                executionId,
+                execDir,
                 status: "running",
                 action_required:
                   "You MUST execute ONE tool call, then END YOUR TURN:\n\n" +
@@ -76,4 +148,25 @@ export function createTeamExecuteToolCompat(teamState: TeamStateManager): AnyAge
       };
     },
   } as AnyAgentTool;
+}
+
+/**
+ * Generate default steps from team workers when steps are not provided.
+ * First two steps are generic, middle steps are based on workers, last step is generic.
+ */
+function generateDefaultSteps(workers: WorkerSpec[]): string[] {
+  const steps = [
+    "创建 agent 任务分工",
+    "拆解子任务并分配角色",
+  ];
+
+  // Add worker-specific steps.
+  for (const worker of workers) {
+    steps.push(`${worker.role}: ${worker.responsibility}`);
+  }
+
+  // Add final step.
+  steps.push("整合输出并生成结果");
+
+  return steps;
 }

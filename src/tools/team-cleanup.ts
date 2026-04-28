@@ -42,6 +42,7 @@ export function createTeamCleanupToolCompat(
       const results: string[] = [];
 
       // Remove Leader from config.
+      let configCleaned = false;
       try {
         const cfg = runtimeConfig.loadConfig();
         const { config: nextCfg, removedBindings, removedAllow } = pruneAgentConfigFn(
@@ -50,16 +51,32 @@ export function createTeamCleanupToolCompat(
         );
         await runtimeConfig.writeConfigFile(nextCfg);
         results.push(`Agent config pruned (${removedBindings} bindings, ${removedAllow} allow entries removed).`);
+        configCleaned = true;
       } catch (err) {
-        results.push(`Config cleanup warning: ${err instanceof Error ? err.message : String(err)}`);
+        results.push(`Config cleanup failed: ${err instanceof Error ? err.message : String(err)}`);
+      }
+
+      if (!configCleaned) {
+        return {
+          content: [
+            {
+              type: "text" as const,
+              text: JSON.stringify({
+                error: `Failed to clean up config for team "${team_id}". Team state preserved to avoid inconsistency.`,
+                details: results,
+              }, null, 2),
+            },
+          ],
+        };
       }
 
       // Keep workspace directory so that generated artifacts remain accessible.
       const teamDir = path.join(stateDir, TEAM_DIR_NAME, team_id);
       results.push(`Workspace preserved at: ${teamDir}`);
 
-      // Remove from state.
+      // Remove from state and persist.
       teamState.removeTeam(team_id);
+      await teamState.saveToDisk(stateDir);
       results.push("Team state cleared.");
 
       return {

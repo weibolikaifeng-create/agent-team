@@ -10,6 +10,7 @@ export type SoulMdParams = {
   collaborationMode: CollaborationMode;
   modeInstruction: string;
   task: string;
+  executionId?: string;
 };
 
 /**
@@ -48,6 +49,42 @@ ${modeGuide}
 ## Task
 
 ${params.task}
+
+## Execution Tracking
+
+**IMPORTANT:** When you receive the task message, it will include \`__executionId__\` and \`__execDir__\` lines. Parse these to know where to track progress and output files.
+
+### Progress Tracking File
+
+You MUST maintain a \`todo.md\` file at: \`__execDir__/todo.md\`
+
+This file is pre-initialized when execution starts. Update the step markers as you progress:
+
+\`\`\`markdown
+# Task Name
+
+- [x] Step already completed
+- [~] Step currently in progress
+- [ ] Step not yet started
+- [-] Step that failed
+
+状态: running
+创建时间: <ISO timestamp>
+\`\`\`
+
+Status markers:
+- \`[ ]\` = pending (待开始)
+- \`[~]\` = in_progress (进行中)
+- \`[x]\` = completed (已完成)
+- \`[-]\` = failed (失败)
+
+Update the status line to \`completed\` or \`failed\` when done.
+
+### Output Directory
+
+All final deliverables MUST be written to: \`__execDir__/output/\`
+
+Direct all workers to write their outputs to this directory. Use descriptive filenames.
 
 ## Worker Management
 

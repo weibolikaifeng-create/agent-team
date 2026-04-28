@@ -100,7 +100,7 @@ const plugin = {
       ),
     );
     api.registerTool(
-      createTeamExecuteToolCompat(teamState),
+      createTeamExecuteToolCompat(teamState, stateDir),
     );
     api.registerTool(
       createTeamCleanupToolCompat(
@@ -123,6 +123,27 @@ const plugin = {
       return { status: "ok" as const, threadBindingReady: true };
     });
 
+    // Detect Leader agent completion and update execution status.
+    api.on("subagent_ended", async (event) => {
+      const sessionKey = event.targetSessionKey ?? "";
+      // Leader session keys follow the pattern: agent:<leaderAgentId>:<leaderAgentId>
+      const match = sessionKey.match(/^agent:(leader-[^:]+):/);
+      if (!match) return;
+      const leaderAgentId = match[1]!;
+      const team = teamState.getAllTeams().find((t) => t.leaderAgentId === leaderAgentId);
+      if (!team || !team.currentExecutionId) return;
+
+      const newStatus = event.outcome === "ok" ? "completed" as const : "failed" as const;
+      teamState.updateExecutionStatus(team.teamId, team.currentExecutionId, newStatus);
+
+      // Check if all executions are done to potentially mark team as ready for reuse.
+      const hasRunning = team.executions.some((e) => e.status === "running");
+      if (!hasRunning) {
+        teamState.updateStatus(team.teamId, "ready");
+      }
+      await teamState.saveToDisk(stateDir);
+    });
+
     // Inject active teams routing table and message handling guidelines into main's system prompt.
     api.on("before_prompt_build", async (_event, ctx) => {
       if (ctx.agentId !== "main") return;
@@ -140,13 +161,15 @@ const plugin = {
     });
 
     // Persist team state across gateway restarts.
+    // Use the same stateDir captured at registration time to ensure consistency
+    // with the paths used by tools (team-provision, team-execute, etc.).
     api.registerService({
       id: "agent-team-state",
-      async start(svcCtx) {
-        await teamState.loadFromDisk(svcCtx.stateDir);
+      async start() {
+        await teamState.loadFromDisk(stateDir);
       },
-      async stop(svcCtx) {
-        await teamState.saveToDisk(svcCtx.stateDir);
+      async stop() {
+        await teamState.saveToDisk(stateDir);
       },
     });
   },

@@ -62,6 +62,8 @@ describe("TeamStateManager", () => {
     collaborationMode: "pipeline" as const,
     status: "ready" as const,
     createdAt: new Date().toISOString(),
+    sessionKey: "session-default",
+    executions: [] as { executionId: string; taskPrompt: string; taskName: string; status: "pending" | "running" | "completed" | "failed"; createdAt: string; completedAt?: string }[],
   });
 
   beforeEach(async () => {
@@ -144,6 +146,114 @@ describe("TeamStateManager", () => {
     await manager.loadFromDisk(tmpDir);
     expect(manager.getAllTeams().length).toBe(0);
   });
+
+  it("getTeamsBySession filters by sessionKey", () => {
+    const r1 = { ...sampleRecord(), teamId: "t1", sessionKey: "session-a" };
+    const r2 = { ...sampleRecord(), teamId: "t2", sessionKey: "session-b" };
+    const r3 = { ...sampleRecord(), teamId: "t3", sessionKey: "session-a" };
+    manager.addTeam(r1);
+    manager.addTeam(r2);
+    manager.addTeam(r3);
+    const result = manager.getTeamsBySession("session-a");
+    expect(result.map((t) => t.teamId).sort()).toEqual(["t1", "t3"]);
+  });
+
+  it("addExecution adds an execution record and sets currentExecutionId", () => {
+    manager.addTeam(sampleRecord());
+    manager.addExecution("test-team", {
+      executionId: "exec-1",
+      taskPrompt: "Write an article",
+      taskName: "AI Article",
+      status: "running",
+      createdAt: new Date().toISOString(),
+    });
+    const team = manager.getTeam("test-team")!;
+    expect(team.executions.length).toBe(1);
+    expect(team.executions[0]!.executionId).toBe("exec-1");
+    expect(team.currentExecutionId).toBe("exec-1");
+  });
+
+  it("updateExecutionStatus updates status and sets completedAt", () => {
+    manager.addTeam(sampleRecord());
+    manager.addExecution("test-team", {
+      executionId: "exec-1",
+      taskPrompt: "Write an article",
+      taskName: "AI Article",
+      status: "running",
+      createdAt: new Date().toISOString(),
+    });
+    manager.updateExecutionStatus("test-team", "exec-1", "completed");
+    const exec = manager.getTeam("test-team")!.executions[0]!;
+    expect(exec.status).toBe("completed");
+    expect(exec.completedAt).toBeTruthy();
+  });
+
+  it("getNextExecutionId returns incremental IDs", () => {
+    manager.addTeam(sampleRecord());
+    expect(manager.getNextExecutionId("test-team")).toBe("exec-1");
+    manager.addExecution("test-team", {
+      executionId: "exec-1",
+      taskPrompt: "Task 1",
+      taskName: "Task 1",
+      status: "running",
+      createdAt: new Date().toISOString(),
+    });
+    expect(manager.getNextExecutionId("test-team")).toBe("exec-2");
+  });
+
+  it("persists executions to disk and restores them", async () => {
+    manager.addTeam(sampleRecord());
+    manager.addExecution("test-team", {
+      executionId: "exec-1",
+      taskPrompt: "Write an article",
+      taskName: "AI Article",
+      status: "completed",
+      createdAt: new Date().toISOString(),
+      completedAt: new Date().toISOString(),
+    });
+    await manager.saveToDisk(tmpDir);
+
+    const manager2 = new TeamStateManager();
+    await manager2.loadFromDisk(tmpDir);
+    const team = manager2.getTeam("test-team")!;
+    expect(team.executions.length).toBe(1);
+    expect(team.executions[0]!.executionId).toBe("exec-1");
+    expect(team.executions[0]!.status).toBe("completed");
+  });
+
+  it("loadFromDisk handles old records without executions field", async () => {
+    // Simulate an old state file without executions field.
+    const teamsDir = path.join(tmpDir, "teams");
+    await fs.mkdir(teamsDir, { recursive: true });
+    const oldState = {
+      version: 1,
+      teams: [
+        {
+          teamId: "old-team",
+          teamName: "Old Team",
+          templateId: "custom",
+          leaderAgentId: "leader-old-team",
+          workers: [],
+          collaborationMode: "pipeline",
+          status: "ready",
+          createdAt: new Date().toISOString(),
+          // no executions field, no sessionKey field
+        },
+      ],
+    };
+    await fs.writeFile(
+      path.join(teamsDir, "agent-team-state.json"),
+      JSON.stringify(oldState),
+      "utf-8",
+    );
+
+    await manager.loadFromDisk(tmpDir);
+    const team = manager.getTeam("old-team")!;
+    expect(team).toBeTruthy();
+    expect(Array.isArray(team.executions)).toBe(true);
+    expect(team.executions.length).toBe(0);
+    expect(team.sessionKey).toBe("");
+  });
 });
 
 // ── Soul Generator ───────────────────────────────────────────────────────
@@ -191,6 +301,14 @@ describe("soul-generator", () => {
       collaborationMode: "supervisor",
     });
     expect(soul).toContain("Supervisor Execution Guide");
+  });
+
+  it("generateSoulMd includes execution tracking section", () => {
+    const soul = generateSoulMd(baseParams);
+    expect(soul).toContain("Execution Tracking");
+    expect(soul).toContain("todo.md");
+    expect(soul).toContain("__execDir__/output/");
+    expect(soul).toContain("__executionId__");
   });
 
   it("generateAgentsMd produces a markdown table", () => {
