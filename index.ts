@@ -136,6 +136,9 @@ const plugin = {
       const newStatus = event.outcome === "ok" ? "completed" as const : "failed" as const;
       teamState.updateExecutionStatus(team.teamId, team.currentExecutionId, newStatus);
 
+      // Clear currentExecutionId after updating the execution status
+      team.currentExecutionId = undefined;
+
       // Check if all executions are done to potentially mark team as ready for reuse.
       const hasRunning = team.executions.some((e) => e.status === "running");
       if (!hasRunning) {

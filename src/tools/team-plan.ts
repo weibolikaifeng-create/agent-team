@@ -13,6 +13,9 @@ const TeamPlanSchema = Type.Object(
         description: "Optional preferred template ID to bias selection.",
       }),
     ),
+    session_key: Type.String({
+      description: "Current session key for filtering reusable teams to the current session.",
+    }),
   },
   { additionalProperties: false },
 );
@@ -20,6 +23,7 @@ const TeamPlanSchema = Type.Object(
 type TeamPlanParams = {
   task: string;
   preferred_template_id?: string;
+  session_key: string;
 };
 
 export function createTeamPlanTool(teamState: TeamStateManager): AnyAgentTool {
@@ -29,7 +33,7 @@ export function createTeamPlanTool(teamState: TeamStateManager): AnyAgentTool {
       "Analyze a task and suggest the best multi-agent team template. Returns ranked template suggestions and any reusable existing teams.",
     parameters: TeamPlanSchema,
     async execute(_toolCallId: string, params: TeamPlanParams) {
-      const { task, preferred_template_id } = params;
+      const { task, preferred_template_id, session_key } = params;
 
       const ranked = rankTemplates(task);
 
@@ -47,9 +51,9 @@ export function createTeamPlanTool(teamState: TeamStateManager): AnyAgentTool {
         }
       }
 
-      // Check for reusable teams from existing state.
+      // Check for reusable teams from existing state, filtered by current session.
       const reusableTeams = ranked.flatMap((r) =>
-        teamState.findReusableTeams(r.template.id).map((team) => ({
+        teamState.findReusableTeams(r.template.id, session_key).map((team) => ({
           teamId: team.teamId,
           teamName: team.teamName,
           templateId: team.templateId,

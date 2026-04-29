@@ -70,11 +70,14 @@ export class TeamStateManager {
 
   /**
    * Find teams that could potentially be reused for a similar task.
-   * Matches by templateId and "ready" status.
+   * Matches by templateId, "ready" status, and optionally sessionKey.
    */
-  findReusableTeams(templateId: string): TeamRecord[] {
+  findReusableTeams(templateId: string, sessionKey?: string): TeamRecord[] {
     return [...this.teams.values()].filter(
-      (t) => t.templateId === templateId && t.status === "ready",
+      (t) =>
+        t.templateId === templateId &&
+        t.status === "ready" &&
+        (sessionKey === undefined || t.sessionKey === sessionKey),
     );
   }
 

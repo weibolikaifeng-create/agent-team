@@ -106,31 +106,66 @@ describe("TeamStateManager", () => {
     expect(active.map((t) => t.teamId).sort()).toEqual(["t1", "t4"]);
   });
 
-  it("findReusableTeams matches by templateId and ready status", () => {
+  it("findReusableTeams matches by templateId, ready status, and sessionKey", () => {
     const r1 = {
       ...sampleRecord(),
       teamId: "t1",
       templateId: "deep-research",
       status: "ready" as const,
+      sessionKey: "session-a",
     };
     const r2 = {
       ...sampleRecord(),
       teamId: "t2",
       templateId: "deep-research",
       status: "running" as const,
+      sessionKey: "session-a",
     };
     const r3 = {
       ...sampleRecord(),
       teamId: "t3",
       templateId: "brainstorm",
       status: "ready" as const,
+      sessionKey: "session-a",
+    };
+    const r4 = {
+      ...sampleRecord(),
+      teamId: "t4",
+      templateId: "deep-research",
+      status: "ready" as const,
+      sessionKey: "session-b",
     };
     manager.addTeam(r1);
     manager.addTeam(r2);
     manager.addTeam(r3);
-    const reusable = manager.findReusableTeams("deep-research");
-    expect(reusable.length).toBe(1);
-    expect(reusable[0]!.teamId).toBe("t1");
+    manager.addTeam(r4);
+
+    // Without sessionKey filter, returns all ready teams with matching templateId
+    const allReusable = manager.findReusableTeams("deep-research");
+    expect(allReusable.length).toBe(2);
+    expect(allReusable.map((t) => t.teamId).sort()).toEqual(["t1", "t4"]);
+
+    // With sessionKey filter, returns only teams from that session
+    const sessionAReusable = manager.findReusableTeams("deep-research", "session-a");
+    expect(sessionAReusable.length).toBe(1);
+    expect(sessionAReusable[0]!.teamId).toBe("t1");
+
+    const sessionBReusable = manager.findReusableTeams("deep-research", "session-b");
+    expect(sessionBReusable.length).toBe(1);
+    expect(sessionBReusable[0]!.teamId).toBe("t4");
+
+    // With empty string sessionKey, should match teams with empty sessionKey
+    const r5 = {
+      ...sampleRecord(),
+      teamId: "t5",
+      templateId: "deep-research",
+      status: "ready" as const,
+      sessionKey: "",
+    };
+    manager.addTeam(r5);
+    const emptySessionReusable = manager.findReusableTeams("deep-research", "");
+    expect(emptySessionReusable.length).toBe(1);
+    expect(emptySessionReusable[0]!.teamId).toBe("t5");
   });
 
   it("persists and restores from disk", async () => {

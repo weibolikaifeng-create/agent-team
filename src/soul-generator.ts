@@ -80,10 +80,22 @@ ${params.task}
 
 **How to update:**
 
-1. **Update step status as you progress** — change \`[ ]\` to \`[~]\` when starting a step, then to \`[x]\` when completed
-2. **On failure** — mark the step as \`[-]\`, then append a retry step: \`- [ ] 重试: <description>\`
+1. **Read the file, modify the existing line in-place, write back** — find the step line and change ONLY its status marker (e.g. \`[ ]\` → \`[~]\` → \`[x]\`). NEVER append duplicate lines.
+2. **On failure** — change the step's marker to \`[-]\`, then append ONE new retry line after it: \`- [ ] 重试: <description>\`
 3. **Ensure all steps are updated when task completes** — before ending, verify every step shows its final status (\`[x]\` or \`[-]\`)
 4. **Only modify checklist status markers** — do not add headings, paragraphs, timestamps, or any other content
+
+**Correct update example:**
+Before: \`- [ ] Research AI trends\`
+After:  \`- [x] Research AI trends\`  ← same line, only marker changed
+
+**Wrong — do NOT do this:**
+\`\`\`
+- [x] Research AI trends    ← old line left in place
+- [ ] Research AI trends    ← duplicate appended ❌
+\`\`\`
+
+**Team reuse:** If the todo.md already contains completed (\`[x]\`) or failed (\`[-]\`) steps from a previous run, do NOT blindly reset all steps. Read the new task, then reset only the steps that need to be re-executed back to \`[ ]\`. Steps unrelated to the new task can remain as-is.
 
 ### Output Directory
 

@@ -40,14 +40,16 @@ If a team member encounters difficulties, **do NOT intervene directly**. The Lea
 Analyze the task and get ranked template suggestions:
 
 ```
-team_plan(task: "Research the EV industry trends in China")
+team_plan(task: "Research the EV industry trends in China", session_key: "<current_session_key>")
 ```
 
 Optional: bias toward a template:
 
 ```
-team_plan(task: "...", preferred_template_id: "deep-research")
+team_plan(task: "...", preferred_template_id: "deep-research", session_key: "<current_session_key>")
 ```
+
+**Note:** `session_key` is required to filter reusable teams to the current session. Use the same session key you would pass to `team_provision`.
 
 The tool returns JSON with:
 
@@ -80,7 +82,7 @@ sessions_send(agentId: "leader-existing-team-abc123", ...)  ❌ DO NOT DO THIS
 
 Creates the Leader agent (`leader-<team_id>`), writes **SOUL.md** and **AGENTS.md** under the team workspace, registers the agent in config, and records the team in plugin state.
 
-**Required:** `team_id`, `task` (this is baked into the Leader’s SOUL as the mission).
+**Required:** `team_id`, `task` (this is baked into the Leader’s SOUL as the mission), `session_key` (binds the team to the current session).
 
 **Either:**
 
@@ -97,7 +99,8 @@ Example:
 team_provision(
   team_id: "ev-research-2024",
   template_id: "deep-research",
-  task: "Research the EV industry trends in China, focusing on..."
+  task: "Research the EV industry trends in China, focusing on...",
+  session_key: "<current_session_key>"
 )
 ```
 

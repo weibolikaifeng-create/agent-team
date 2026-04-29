@@ -20,7 +20,7 @@ const TeamExecuteSchema = Type.Object(
     ),
     steps: Type.Array(Type.String(), {
       description:
-        'Task-specific step descriptions for progress tracking. MUST include: (1) "创建 agent 团队" and "拆解子任务并分配角色" as first two steps, (2) one step per worker with their role AND specific topic from the task (e.g. "搜索专家1: 调研 DeepSeek V4 模型架构创新"), (3) a final synthesis step describing the deliverable (e.g. "整合搜索结果并撰写 DeepSeek V4 技术调研报告"). Example for a deep-research team on "DeepSeek V4 技术调研": ["创建 agent 团队", "拆解子任务并分配角色", "搜索专家1: 调研 DeepSeek V4 模型架构与 MoE 设计", "搜索专家2: 调研 DeepSeek V4 训练方法与性能表现", "整合搜索结果并撰写 DeepSeek V4 技术调研报告"].',
+        'Task-specific step descriptions for todo.md progress tracking. Structure: (1) 1-2 general preparation steps (e.g. team setup, task breakdown), (2) one step per team worker matching their role and responsibility — use the worker\'s role name as prefix followed by their specific task from this execution (e.g. "Search Specialist 1: Research DeepSeek V4 architecture and MoE design"). The number of worker steps MUST equal the number of workers in the team, and each step should correspond to one worker. Do NOT add extra steps for roles that don\'t exist in the team. Example for a team with [Search Specialist 1, Search Specialist 2, Report Writer]: ["Set up agent team", "Break down tasks and assign roles", "Search Specialist 1: Research DeepSeek V4 architecture and MoE design", "Search Specialist 2: Research DeepSeek V4 training methods and performance", "Report Writer: Synthesize findings into DeepSeek V4 technical report"].',
     }),
     channel_info: ChannelInfoSchema,
   },
@@ -119,9 +119,8 @@ export function createTeamExecuteToolCompat(teamState: TeamStateManager, stateDi
                 leaderAgentId: team.leaderAgentId,
                 executionId,
                 execDir,
-                status: "running",
                 action_required:
-                  "You MUST execute ONE tool call, then END YOUR TURN:\n\n" +
+                  "CRITICAL: The team has NOT started yet. You MUST call sessions_send immediately with the parameters below to activate the Leader.\n\n" +
                   "STEP 1 — Call sessions_send with the parameters in 'sessions_send_params'. " +
                   "This is a FIRE-AND-FORGET call (timeoutSeconds=0) — it returns immediately.\n\n" +
                   "STEP 2 — After sessions_send returns, inform the user that the team is now working and END YOUR TURN. " +
