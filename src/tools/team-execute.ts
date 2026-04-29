@@ -3,7 +3,6 @@ import path from "node:path";
 import { Type } from "@sinclair/typebox";
 import type { AnyAgentTool } from "openclaw/plugin-sdk/agent-team";
 import type { TeamStateManager } from "../team-state.js";
-import type { WorkerSpec } from "../templates.js";
 import { TEAM_DIR_NAME, EXECUTIONS_DIR, TODO_FILE, OUTPUT_DIR } from "../constants.js";
 
 const ChannelInfoSchema = Type.Object({
@@ -19,12 +18,10 @@ const TeamExecuteSchema = Type.Object(
     task_name: Type.Optional(
       Type.String({ description: "Short task name for display (max 15 chars). AI-generated summary of the task." }),
     ),
-    steps: Type.Optional(
-      Type.Array(Type.String(), {
-        description:
-          'Task-specific step descriptions for progress tracking. Generate based on the task and team workers. Example: ["创建 agent 任务分工", "拆解子任务并分配角色", "收集 AI 行业背景资料", "撰写 AI 技术分析文章"]. If omitted, steps are auto-generated from team workers.',
-      }),
-    ),
+    steps: Type.Array(Type.String(), {
+      description:
+        'Task-specific step descriptions for progress tracking. MUST include: (1) "创建 agent 团队" and "拆解子任务并分配角色" as first two steps, (2) one step per worker with their role AND specific topic from the task (e.g. "搜索专家1: 调研 DeepSeek V4 模型架构创新"), (3) a final synthesis step describing the deliverable (e.g. "整合搜索结果并撰写 DeepSeek V4 技术调研报告"). Example for a deep-research team on "DeepSeek V4 技术调研": ["创建 agent 团队", "拆解子任务并分配角色", "搜索专家1: 调研 DeepSeek V4 模型架构与 MoE 设计", "搜索专家2: 调研 DeepSeek V4 训练方法与性能表现", "整合搜索结果并撰写 DeepSeek V4 技术调研报告"].',
+    }),
     channel_info: ChannelInfoSchema,
   },
   { additionalProperties: false },
@@ -35,7 +32,7 @@ type TeamExecuteParams = {
   team_id: string;
   task: string;
   task_name?: string;
-  steps?: string[];
+  steps: string[];
   channel_info: ChannelInfo;
 };
 
@@ -74,8 +71,8 @@ export function createTeamExecuteToolCompat(teamState: TeamStateManager, stateDi
         };
       }
 
-      // Resolve steps: use provided steps or auto-generate from workers.
-      const steps = params.steps ?? generateDefaultSteps(team.workers);
+      // Resolve steps from required parameter.
+      const steps = params.steps;
 
       // Generate execution instance.
       const executionId = teamState.getNextExecutionId(team_id);
@@ -91,9 +88,6 @@ export function createTeamExecuteToolCompat(teamState: TeamStateManager, stateDi
         `# ${taskName}`,
         "",
         ...steps.map((s) => `- [ ] ${s}`),
-        "",
-        "状态: running",
-        `创建时间: ${new Date().toISOString()}`,
       ];
       await fs.writeFile(path.join(execDir, TODO_FILE), todoLines.join("\n"), "utf-8");
 
@@ -150,23 +144,3 @@ export function createTeamExecuteToolCompat(teamState: TeamStateManager, stateDi
   } as AnyAgentTool;
 }
 
-/**
- * Generate default steps from team workers when steps are not provided.
- * First two steps are generic, middle steps are based on workers, last step is generic.
- */
-function generateDefaultSteps(workers: WorkerSpec[]): string[] {
-  const steps = [
-    "创建 agent 任务分工",
-    "拆解子任务并分配角色",
-  ];
-
-  // Add worker-specific steps.
-  for (const worker of workers) {
-    steps.push(`${worker.role}: ${worker.responsibility}`);
-  }
-
-  // Add final step.
-  steps.push("整合输出并生成结果");
-
-  return steps;
-}

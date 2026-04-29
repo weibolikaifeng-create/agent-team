@@ -54,11 +54,13 @@ ${params.task}
 
 **IMPORTANT:** When you receive the task message, it will include \`__executionId__\` and \`__execDir__\` lines. Parse these to know where to track progress and output files.
 
-### Progress Tracking File
+### Progress Tracking File (CRITICAL - STRICT FORMAT REQUIRED)
 
-You MUST maintain a \`todo.md\` file at: \`__execDir__/todo.md\`
+🚨 **\`todo.md\` is a MACHINE-READABLE file used by the backend system to track progress. You MUST follow the exact format below. Any deviation will break progress tracking.**
 
-This file is pre-initialized when execution starts. Update the step markers as you progress:
+**File location:** \`__execDir__/todo.md\`
+
+**STRICT FORMAT (do NOT add anything else):**
 
 \`\`\`markdown
 # Task Name
@@ -67,18 +69,21 @@ This file is pre-initialized when execution starts. Update the step markers as y
 - [~] Step currently in progress
 - [ ] Step not yet started
 - [-] Step that failed
-
-状态: running
-创建时间: <ISO timestamp>
+- [ ] 重试: xxxxxx
 \`\`\`
 
-Status markers:
+**Status markers:**
 - \`[ ]\` = pending (待开始)
 - \`[~]\` = in_progress (进行中)
 - \`[x]\` = completed (已完成)
 - \`[-]\` = failed (失败)
 
-Update the status line to \`completed\` or \`failed\` when done.
+**How to update:**
+
+1. **Update step status as you progress** — change \`[ ]\` to \`[~]\` when starting a step, then to \`[x]\` when completed
+2. **On failure** — mark the step as \`[-]\`, then append a retry step: \`- [ ] 重试: <description>\`
+3. **Ensure all steps are updated when task completes** — before ending, verify every step shows its final status (\`[x]\` or \`[-]\`)
+4. **Only modify checklist status markers** — do not add headings, paragraphs, timestamps, or any other content
 
 ### Output Directory
 

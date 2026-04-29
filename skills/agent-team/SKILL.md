@@ -58,6 +58,24 @@ The tool returns JSON with:
 
 If `suggestions` is empty, the task wording did not match any template keywords; you can still call `team_provision` with a `template_id` you choose, or a **custom** team (see below).
 
+**🚨 CRITICAL: Reusing Teams**
+
+If `reusableTeams` contains teams you want to reuse:
+
+1. **Skip `team_provision`** — the team already exists
+2. **MUST call `team_execute`** with the new task — this creates a new execution instance with isolated progress tracking
+3. **NEVER call `sessions_send` directly** to the Leader — this bypasses execution tracking and breaks progress monitoring
+
+**Correct reuse flow:**
+```
+team_execute(team_id: "existing-team-abc123", task: "New task here", steps: ["创建 agent 团队", "拆解子任务并分配角色", ...], channel_info: {...})
+```
+
+**Wrong (will break tracking):**
+```
+sessions_send(agentId: "leader-existing-team-abc123", ...)  ❌ DO NOT DO THIS
+```
+
 ### 2. Provision: `team_provision`
 
 Creates the Leader agent (`leader-<team_id>`), writes **SOUL.md** and **AGENTS.md** under the team workspace, registers the agent in config, and records the team in plugin state.
@@ -87,12 +105,30 @@ After success, the team is **`ready`**. Provisioning may take a short moment whi
 
 ### 3. Execute: `team_execute`
 
-Starts work by giving **you** the parameters for **one** tool call on the Leader — **no separate `sessions_spawn` step** in this plugin build.
+Starts work by creating a new execution instance with isolated progress tracking (todo.md and output/ directory).
+
+**CRITICAL:** This step is REQUIRED for both new teams and reused teams. Never skip this step.
+
+**Required parameters:**
+- `team_id`: The team to execute
+- `task`: Task description for the Leader
+- `steps`: Array of task-specific progress steps (see format below)
+- `channel_info`: Channel routing information
+
+**Steps format:** Must include (1) "创建 agent 团队" and "拆解子任务并分配角色" as first two steps, (2) one step per worker with role + specific topic, (3) final synthesis step. Example:
 
 ```
 team_execute(
   team_id: "ev-research-2024",
-  task: "Research the EV industry trends in China, focusing on..."
+  task: "Research the EV industry trends in China, focusing on...",
+  steps: [
+    "创建 agent 团队",
+    "拆解子任务并分配角色",
+    "搜索专家1: 调研中国电动车市场规模与增长趋势",
+    "搜索专家2: 调研中国电动车政策与补贴变化",
+    "整合搜索结果并撰写中国电动车行业趋势报告"
+  ],
+  channel_info: { channel: "feishu", target: "ou_xxx", msg_id: "msg_xxx" }
 )
 ```
 
@@ -107,6 +143,8 @@ team_execute(
 Call `sessions_send` with these params, tell the user the team is working, then end your turn. The Leader pushes updates directly to the channel.
 
 **Team state:** `team_execute` succeeds when the team is **`ready`** or **`running`**. Avoid calling `team_execute` again for the same team while a run is already in progress unless you intend to send another task (which can duplicate work).
+
+**🚨 WARNING:** Never call `sessions_send` directly to a Leader without going through `team_execute` first. This will bypass execution tracking and break progress monitoring.
 
 ### 4. Cleanup: `team_cleanup`
 
@@ -145,16 +183,6 @@ When you plan a team, briefly tell the user:
 The Leader pushes progress updates directly to the channel using the `message` tool. You do NOT need to relay messages.
 
 ### Passing channel info to the team
-
-**REQUIRED:** Always pass the `channel_info` parameter to `team_execute` to specify where the Leader should push progress updates:
-
-```
-team_execute(
-  team_id: "research-2024",
-  task: "Research the EV industry trends in China",
-  channel_info: { channel: "feishu", target: "ou_xxx", msg_id: "msg_xxx" }
-)
-```
 
 `channel_info` fields: `channel` (required), `target` (required), `msg_id` (optional, for reply/react).
 

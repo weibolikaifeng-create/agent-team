@@ -74,7 +74,11 @@ export function createTeamPlanTool(teamState: TeamStateManager): AnyAgentTool {
 
       const guidance =
         suggestions.length > 0
-          ? `Best match: "${suggestions[0]!.name}" (${suggestions[0]!.score}% keyword match). Use team_provision to create this team, or pick a different template.`
+          ? `Best match: "${suggestions[0]!.name}" (${suggestions[0]!.score}% keyword match). Use team_provision to create this team, or pick a different template.${
+              reusableTeams.length > 0
+                ? ` REUSABLE TEAMS FOUND: To reuse an existing team, call team_execute(team_id: "<team_id>", task: "...") — do NOT call sessions_send directly to the Leader, as this will bypass execution tracking.`
+                : ""
+            }`
           : "No strong template match found. You can still use team_provision with any template ID, or design a custom team by specifying leader/workers directly. When planning custom teams: avoid using generic roles like 'reviewer', 'editor', or 'checker' that merely validate others' work without producing original content; instead, focus on roles that generate tangible outputs (e.g., researcher, writer, analyst, designer, developer). For mapreduce and supervisor modes, limit workers that run in parallel to 2 (recommended) or 3 (maximum) — this is a concurrency limit, not a total worker limit. For example, 3 parallel search workers + 1 sequential writer is fine; 4 simultaneous search workers is not.";
 
       return {
