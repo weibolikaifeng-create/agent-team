@@ -66,7 +66,7 @@ export function createTeamPlanTool(teamState: TeamStateManager): AnyAgentTool {
         name: r.template.name,
         description: r.template.description,
         collaborationMode: r.template.collaborationMode,
-        workerCount: r.template.workers.length,
+        workerInfo: r.template.workers.map((w) => w.role).join(", "),
         score: Math.round(r.score * 100),
       }));
 

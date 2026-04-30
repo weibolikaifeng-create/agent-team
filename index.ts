@@ -4,6 +4,7 @@ import { createTeamPlanTool } from "./src/tools/team-plan.js";
 import { createTeamProvisionTool } from "./src/tools/team-provision.js";
 import { createTeamExecuteToolCompat } from "./src/tools/team-execute.js";
 import { createTeamCleanupToolCompat } from "./src/tools/team-cleanup.js";
+import { createTeamCompleteTool } from "./src/tools/team-complete.js";
 import type { RuntimeConfig, PruneAgentConfigFn } from "./src/tools/team-cleanup.js";
 
 // Inlined from core to avoid relative path dependency on src/ (not shipped in npm).
@@ -89,7 +90,7 @@ const plugin = {
     const runtimeConfig = api.runtime.config;
     const stateDir = api.runtime.state.resolveStateDir();
 
-    // Register the 4 team tools.
+    // Register the 5 team tools.
     api.registerTool(createTeamPlanTool(teamState));
     api.registerTool(
       createTeamProvisionTool(
@@ -102,6 +103,7 @@ const plugin = {
     api.registerTool(
       createTeamExecuteToolCompat(teamState, stateDir),
     );
+    api.registerTool(createTeamCompleteTool(teamState, stateDir));
     api.registerTool(
       createTeamCleanupToolCompat(
         teamState,
@@ -121,30 +123,6 @@ const plugin = {
         event.agentId?.startsWith("leader-") || event.label?.startsWith("team-");
       if (!isTeamLeader) return;
       return { status: "ok" as const, threadBindingReady: true };
-    });
-
-    // Detect Leader agent completion and update execution status.
-    api.on("subagent_ended", async (event) => {
-      const sessionKey = event.targetSessionKey ?? "";
-      // Leader session keys follow the pattern: agent:<leaderAgentId>:<leaderAgentId>
-      const match = sessionKey.match(/^agent:(leader-[^:]+):/);
-      if (!match) return;
-      const leaderAgentId = match[1]!;
-      const team = teamState.getAllTeams().find((t) => t.leaderAgentId === leaderAgentId);
-      if (!team || !team.currentExecutionId) return;
-
-      const newStatus = event.outcome === "ok" ? "completed" as const : "failed" as const;
-      teamState.updateExecutionStatus(team.teamId, team.currentExecutionId, newStatus);
-
-      // Clear currentExecutionId after updating the execution status
-      team.currentExecutionId = undefined;
-
-      // Check if all executions are done to potentially mark team as ready for reuse.
-      const hasRunning = team.executions.some((e) => e.status === "running");
-      if (!hasRunning) {
-        teamState.updateStatus(team.teamId, "ready");
-      }
-      await teamState.saveToDisk(stateDir);
     });
 
     // Inject active teams routing table and message handling guidelines into main's system prompt.

@@ -3,9 +3,9 @@ import path from "node:path";
 import { STATE_FILE, TEAM_DIR_NAME } from "./constants.js";
 import type { CollaborationMode, WorkerSpec } from "./templates.js";
 
-export type TeamStatus = "provisioning" | "ready" | "running" | "completed" | "error";
+export type TeamStatus = "provisioning" | "ready" | "running" | "completed" | "error" | "";
 
-export type ExecutionStatus = "pending" | "running" | "completed" | "failed";
+export type ExecutionStatus = "pending" | "running" | "completed" | "failed" | "";
 
 export type ExecutionRecord = {
   executionId: string;

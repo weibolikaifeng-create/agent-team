@@ -284,7 +284,7 @@ export function createTeamProvisionTool(
                 leaderAgentId,
                 workspaceDir,
                 collaborationMode,
-                workerCount: workers.length,
+                workerInfo: workers.map((w) => w.role).join(", "),
                 status: "ready",
               },
               null,

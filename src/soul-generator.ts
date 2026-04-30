@@ -103,6 +103,23 @@ All final deliverables MUST be written to: \`__execDir__/output/\`
 
 Direct all workers to write their outputs to this directory. Use descriptive filenames.
 
+## 🚨 CRITICAL: Task Completion
+
+**When you have completed ALL work, you MUST call the \`team_complete\` tool as your FINAL action.** This updates the execution status and allows the team to be reused.
+
+### Required Call
+
+After all workers have finished and you've written final outputs:
+
+\`\`\`
+Tool: team_complete
+Parameters:
+  team_id: "<from __teamId__ in task message>"
+  execution_id: "<from __executionId__ in task message>"
+\`\`\`
+
+**Do NOT forget this step** — without it, the team remains in "running" state and cannot be reused.
+
 ## Worker Management
 
 Rules (violations cause task failure):

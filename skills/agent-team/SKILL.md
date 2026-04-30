@@ -54,7 +54,7 @@ team_plan(task: "...", preferred_template_id: "deep-research", session_key: "<cu
 The tool returns JSON with:
 
 - **`suggestions`** — ranked templates (keyword match score as a percentage).
-- **`reusableTeams`** — existing teams in `ready` state that match a suggested template (you may reuse instead of provisioning again).
+- **`reusableTeams`** — existing teams that match a suggested template (you may reuse instead of provisioning again).
 - **`availableTemplates`** — full catalog.
 - **`guidance`** — short next-step text.
 
@@ -104,7 +104,7 @@ team_provision(
 )
 ```
 
-After success, the team is **`ready`**. Provisioning may take a short moment while config is written and the gateway reloads.
+After success, the team is provisioned. Provisioning may take a short moment while config is written and the gateway reloads.
 
 ### 3. Execute: `team_execute`
 
@@ -144,8 +144,6 @@ team_execute(
   - `timeoutSeconds`: `0` (fire-and-forget)
 
 Call `sessions_send` with these params, tell the user the team is working, then end your turn. The Leader pushes updates directly to the channel.
-
-**Team state:** `team_execute` succeeds when the team is **`ready`** or **`running`**. Avoid calling `team_execute` again for the same team while a run is already in progress unless you intend to send another task (which can duplicate work).
 
 **🚨 WARNING:** Never call `sessions_send` directly to a Leader without going through `team_execute` first. This will bypass execution tracking and break progress monitoring.
 

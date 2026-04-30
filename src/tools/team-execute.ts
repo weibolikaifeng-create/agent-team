@@ -50,13 +50,22 @@ export function createTeamExecuteToolCompat(teamState: TeamStateManager, stateDi
           content: [{ type: "text" as const, text: JSON.stringify({ error: `Team "${team_id}" not found. Use team_provision first.` }) }],
         };
       }
-      if (team.status !== "ready" && team.status !== "running") {
+
+      // Check team status
+      if (team.status !== "ready") {
         return {
-          content: [{ type: "text" as const, text: JSON.stringify({ error: `Team "${team_id}" is in "${team.status}" state. Expected "ready" or "running".` }) }],
+          content: [
+            {
+              type: "text" as const,
+              text: JSON.stringify({
+                error: `Team "${team_id}" is in "${team.status}" state. Expected "ready". Wait for current execution to complete or call team_cleanup to reset.`,
+              }),
+            },
+          ],
         };
       }
 
-      // Check if there's already a running execution.
+      // Check if there's already a running execution
       const hasRunningExecution = team.executions.some((e) => e.status === "running");
       if (hasRunningExecution) {
         return {
@@ -103,10 +112,12 @@ export function createTeamExecuteToolCompat(teamState: TeamStateManager, stateDi
       await teamState.saveToDisk(stateDir);
 
       // Embed channel_info and executionId into the task message so the Leader knows where to push progress updates
+      // Embed channel info, team ID, execution ID, and exec dir into the task message
       const taskWithCallback =
-        `__channelInfo__: ${JSON.stringify(channel_info)}\n` +
+        `__teamId__: ${team_id}\n` +
         `__executionId__: ${executionId}\n` +
-        `__execDir__: ${execDir}\n\n${task}`;
+        `__execDir__: ${execDir}\n` +
+        `__channelInfo__: ${JSON.stringify(channel_info)}\n\n${task}`;
 
       return {
         content: [
