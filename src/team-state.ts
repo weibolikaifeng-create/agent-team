@@ -30,10 +30,56 @@ export type TeamRecord = {
   currentExecutionId?: string;
 };
 
-type PersistedState = {
+// ── Standalone disk I/O helpers (no in-memory cache) ─────────────
+
+export type PersistedState = {
   version: 1;
   teams: TeamRecord[];
 };
+
+function emptyState(): PersistedState {
+  return { version: 1, teams: [] };
+}
+
+/** Read team state directly from disk. Returns empty state if file doesn't exist. */
+export async function readStateFromDisk(stateDir: string): Promise<PersistedState> {
+  const filePath = path.join(stateDir, TEAM_DIR_NAME, STATE_FILE);
+  try {
+    const raw = await fs.readFile(filePath, "utf-8");
+    const data = JSON.parse(raw) as PersistedState;
+    if (data.version === 1 && Array.isArray(data.teams)) {
+      // Backward compatibility
+      for (const record of data.teams) {
+        if (!Array.isArray(record.executions)) record.executions = [];
+        if (!record.sessionKey) record.sessionKey = "";
+      }
+      return data;
+    }
+    return emptyState();
+  } catch (err) {
+    if (err instanceof Error && (err as NodeJS.ErrnoException).code === "ENOENT") {
+      return emptyState();
+    }
+    throw err;
+  }
+}
+
+/** Atomic write team state to disk (tmp + rename). */
+export async function writeStateToDisk(stateDir: string, data: PersistedState): Promise<void> {
+  const dirPath = path.join(stateDir, TEAM_DIR_NAME);
+  const filePath = path.join(dirPath, STATE_FILE);
+  const tmpPath = filePath + ".tmp";
+  await fs.mkdir(dirPath, { recursive: true });
+  await fs.writeFile(tmpPath, JSON.stringify(data, null, 2), "utf-8");
+  await fs.rename(tmpPath, filePath);
+}
+
+/** Generate next execution ID for a team based on existing execution count. */
+export function getNextExecutionId(team: TeamRecord): string {
+  return `exec-${team.executions.length + 1}`;
+}
+
+// ── Legacy TeamStateManager (kept for tests) ──────────────────────
 
 /**
  * Manages team lifecycle state in memory with optional disk persistence.

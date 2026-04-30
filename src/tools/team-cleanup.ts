@@ -2,7 +2,7 @@ import path from "node:path";
 import { Type } from "@sinclair/typebox";
 import type { AnyAgentTool } from "openclaw/plugin-sdk/agent-team";
 import { TEAM_DIR_NAME } from "../constants.js";
-import type { TeamStateManager } from "../team-state.js";
+import { readStateFromDisk, writeStateToDisk } from "../team-state.js";
 
 const TeamCleanupSchema = Type.Object(
   { team_id: Type.String({ description: "ID of the team to clean up and remove." }) },
@@ -20,7 +20,6 @@ export type PruneAgentConfigFn = (
 ) => { config: Record<string, unknown>; removedBindings: number; removedAllow: number };
 
 export function createTeamCleanupToolCompat(
-  teamState: TeamStateManager,
   stateDir: string,
   runtimeConfig: RuntimeConfig,
   pruneAgentConfigFn: PruneAgentConfigFn,
@@ -32,7 +31,10 @@ export function createTeamCleanupToolCompat(
     parameters: TeamCleanupSchema,
     async execute(_toolCallId: string, params: { team_id: string }) {
       const { team_id } = params;
-      const team = teamState.getTeam(team_id);
+
+      // Read latest state from disk.
+      const state = await readStateFromDisk(stateDir);
+      const team = state.teams.find((t) => t.teamId === team_id);
       if (!team) {
         return {
           content: [{ type: "text" as const, text: JSON.stringify({ error: `Team "${team_id}" not found.` }) }],
@@ -75,8 +77,8 @@ export function createTeamCleanupToolCompat(
       results.push(`Workspace preserved at: ${teamDir}`);
 
       // Remove from state and persist.
-      teamState.removeTeam(team_id);
-      await teamState.saveToDisk(stateDir);
+      state.teams = state.teams.filter((t) => t.teamId !== team_id);
+      await writeStateToDisk(stateDir, state);
       results.push("Team state cleared.");
 
       return {

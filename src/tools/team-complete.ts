@@ -1,6 +1,6 @@
 import { Type } from "@sinclair/typebox";
 import type { AnyAgentTool } from "openclaw/plugin-sdk/agent-team";
-import type { TeamStateManager } from "../team-state.js";
+import { readStateFromDisk, writeStateToDisk } from "../team-state.js";
 
 const TeamCompleteSchema = Type.Object(
   {
@@ -19,10 +19,7 @@ type TeamCompleteParams = {
   execution_id: string;
 };
 
-export function createTeamCompleteTool(
-  teamState: TeamStateManager,
-  stateDir: string,
-): AnyAgentTool {
+export function createTeamCompleteTool(stateDir: string): AnyAgentTool {
   return {
     name: "team_complete",
     description:
@@ -31,8 +28,25 @@ export function createTeamCompleteTool(
     async execute(_toolCallId: string, params: TeamCompleteParams) {
       const { team_id, execution_id } = params;
 
-      // 1. Find team
-      const team = teamState.getTeam(team_id);
+      // 1. Read state file from disk
+      let data;
+      try {
+        data = await readStateFromDisk(stateDir);
+      } catch (err) {
+        return {
+          content: [
+            {
+              type: "text" as const,
+              text: JSON.stringify({
+                error: `Failed to read team state file: ${(err as Error).message}`,
+              }),
+            },
+          ],
+        };
+      }
+
+      // 2. Find team
+      const team = data.teams.find((t) => t.teamId === team_id);
       if (!team) {
         return {
           content: [
@@ -46,8 +60,8 @@ export function createTeamCompleteTool(
         };
       }
 
-      // 2. Find execution record
-      const execution = team.executions.find((e) => e.executionId === execution_id);
+      // 3. Find execution record
+      const execution = team.executions?.find((e) => e.executionId === execution_id);
       if (!execution) {
         return {
           content: [
@@ -61,7 +75,7 @@ export function createTeamCompleteTool(
         };
       }
 
-      // 3. Update execution status (idempotent)
+      // 4. Update execution status (idempotent)
       if (execution.status === "completed") {
         return {
           content: [
@@ -82,21 +96,21 @@ export function createTeamCompleteTool(
       execution.status = "completed";
       execution.completedAt = new Date().toISOString();
 
-      // 4. Clear currentExecutionId
+      // 5. Clear currentExecutionId
       if (team.currentExecutionId === execution_id) {
         team.currentExecutionId = undefined;
       }
 
-      // 5. Update team status
+      // 6. Update team status
       const hasRunning = team.executions.some((e) => e.status === "running");
       if (!hasRunning) {
-        teamState.updateStatus(team_id, "ready");
+        team.status = "ready";
       }
 
-      // 6. Persist to disk
-      await teamState.saveToDisk(stateDir);
+      // 7. Write back to disk
+      await writeStateToDisk(stateDir, data);
 
-      // 7. Return success
+      // 8. Return success
       return {
         content: [
           {
@@ -118,4 +132,3 @@ export function createTeamCompleteTool(
     },
   } as AnyAgentTool;
 }
-

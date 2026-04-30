@@ -1,6 +1,6 @@
 import { Type } from "@sinclair/typebox";
 import type { AnyAgentTool } from "openclaw/plugin-sdk/agent-team";
-import type { TeamStateManager } from "../team-state.js";
+import { readStateFromDisk } from "../team-state.js";
 import { TEMPLATES, rankTemplates } from "../templates.js";
 
 const TeamPlanSchema = Type.Object(
@@ -26,7 +26,7 @@ type TeamPlanParams = {
   session_key: string;
 };
 
-export function createTeamPlanTool(teamState: TeamStateManager): AnyAgentTool {
+export function createTeamPlanTool(stateDir: string): AnyAgentTool {
   return {
     name: "team_plan",
     description:
@@ -51,14 +51,22 @@ export function createTeamPlanTool(teamState: TeamStateManager): AnyAgentTool {
         }
       }
 
-      // Check for reusable teams from existing state, filtered by current session.
+      // Read latest state from disk and find reusable teams.
+      const state = await readStateFromDisk(stateDir);
       const reusableTeams = ranked.flatMap((r) =>
-        teamState.findReusableTeams(r.template.id, session_key).map((team) => ({
-          teamId: team.teamId,
-          teamName: team.teamName,
-          templateId: team.templateId,
-          status: team.status,
-        })),
+        state.teams
+          .filter(
+            (t) =>
+              t.templateId === r.template.id &&
+              t.status === "ready" &&
+              (session_key === undefined || t.sessionKey === session_key),
+          )
+          .map((team) => ({
+            teamId: team.teamId,
+            teamName: team.teamName,
+            templateId: team.templateId,
+            status: team.status,
+          })),
       );
 
       const suggestions = ranked.map((r) => ({

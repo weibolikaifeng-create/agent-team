@@ -2,7 +2,7 @@ import fs from "node:fs/promises";
 import path from "node:path";
 import { Type } from "@sinclair/typebox";
 import type { AnyAgentTool } from "openclaw/plugin-sdk/agent-team";
-import type { TeamStateManager } from "../team-state.js";
+import { readStateFromDisk, writeStateToDisk, getNextExecutionId } from "../team-state.js";
 import { TEAM_DIR_NAME, EXECUTIONS_DIR, TODO_FILE, OUTPUT_DIR } from "../constants.js";
 
 const ChannelInfoSchema = Type.Object({
@@ -36,7 +36,7 @@ type TeamExecuteParams = {
   channel_info: ChannelInfo;
 };
 
-export function createTeamExecuteToolCompat(teamState: TeamStateManager, stateDir: string): AnyAgentTool {
+export function createTeamExecuteToolCompat(stateDir: string): AnyAgentTool {
   return {
     name: "team_execute",
     description:
@@ -44,7 +44,10 @@ export function createTeamExecuteToolCompat(teamState: TeamStateManager, stateDi
     parameters: TeamExecuteSchema,
     async execute(_toolCallId: string, params: TeamExecuteParams) {
       const { team_id, task, channel_info } = params;
-      const team = teamState.getTeam(team_id);
+
+      // Read latest state from disk.
+      const state = await readStateFromDisk(stateDir);
+      const team = state.teams.find((t) => t.teamId === team_id);
       if (!team) {
         return {
           content: [{ type: "text" as const, text: JSON.stringify({ error: `Team "${team_id}" not found. Use team_provision first.` }) }],
@@ -84,7 +87,7 @@ export function createTeamExecuteToolCompat(teamState: TeamStateManager, stateDi
       const steps = params.steps;
 
       // Generate execution instance.
-      const executionId = teamState.getNextExecutionId(team_id);
+      const executionId = getNextExecutionId(team);
       const execDir = path.join(stateDir, TEAM_DIR_NAME, team_id, EXECUTIONS_DIR, executionId);
       const outputDir = path.join(execDir, OUTPUT_DIR);
 
@@ -100,16 +103,17 @@ export function createTeamExecuteToolCompat(teamState: TeamStateManager, stateDi
       ];
       await fs.writeFile(path.join(execDir, TODO_FILE), todoLines.join("\n"), "utf-8");
 
-      // Record execution instance.
-      teamState.addExecution(team_id, {
+      // Record execution and update status — write back to disk.
+      team.executions.push({
         executionId,
         taskPrompt: task,
         taskName,
         status: "running",
         createdAt: new Date().toISOString(),
       });
-      teamState.updateStatus(team_id, "running");
-      await teamState.saveToDisk(stateDir);
+      team.currentExecutionId = executionId;
+      team.status = "running";
+      await writeStateToDisk(stateDir, state);
 
       // Embed channel_info and executionId into the task message so the Leader knows where to push progress updates
       // Embed channel info, team ID, execution ID, and exec dir into the task message

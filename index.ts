@@ -1,5 +1,5 @@
 import type { OpenClawPluginApi } from "openclaw/plugin-sdk/agent-team";
-import { TeamStateManager } from "./src/team-state.js";
+import { readStateFromDisk } from "./src/team-state.js";
 import { createTeamPlanTool } from "./src/tools/team-plan.js";
 import { createTeamProvisionTool } from "./src/tools/team-provision.js";
 import { createTeamExecuteToolCompat } from "./src/tools/team-execute.js";
@@ -86,27 +86,24 @@ const plugin = {
   name: "Agent Team",
   description: "Dynamic multi-agent team orchestration.",
   register(api: OpenClawPluginApi) {
-    const teamState = new TeamStateManager();
     const runtimeConfig = api.runtime.config;
     const stateDir = api.runtime.state.resolveStateDir();
 
     // Register the 5 team tools.
-    api.registerTool(createTeamPlanTool(teamState));
+    api.registerTool(createTeamPlanTool(stateDir));
     api.registerTool(
       createTeamProvisionTool(
-        teamState,
         stateDir,
         runtimeConfig,
-        applyAgentConfig as Parameters<typeof createTeamProvisionTool>[3],
+        applyAgentConfig as Parameters<typeof createTeamProvisionTool>[2],
       ),
     );
     api.registerTool(
-      createTeamExecuteToolCompat(teamState, stateDir),
+      createTeamExecuteToolCompat(stateDir),
     );
-    api.registerTool(createTeamCompleteTool(teamState, stateDir));
+    api.registerTool(createTeamCompleteTool(stateDir));
     api.registerTool(
       createTeamCleanupToolCompat(
-        teamState,
         stateDir,
         runtimeConfig,
         pruneAgentConfig as unknown as PruneAgentConfigFn,
@@ -128,7 +125,8 @@ const plugin = {
     // Inject active teams routing table and message handling guidelines into main's system prompt.
     api.on("before_prompt_build", async (_event, ctx) => {
       if (ctx.agentId !== "main") return;
-      const active = teamState.getActiveTeams();
+      const state = await readStateFromDisk(stateDir);
+      const active = state.teams.filter((t) => t.status !== "completed" && t.status !== "error");
       const lines = active.map(
         (t) =>
           `- **${t.teamName}** (\`${t.teamId}\`) | Leader: \`${t.leaderAgentId}\` | Status: ${t.status}`,
@@ -141,18 +139,6 @@ const plugin = {
       return { appendSystemContext: append };
     });
 
-    // Persist team state across gateway restarts.
-    // Use the same stateDir captured at registration time to ensure consistency
-    // with the paths used by tools (team-provision, team-execute, etc.).
-    api.registerService({
-      id: "agent-team-state",
-      async start() {
-        await teamState.loadFromDisk(stateDir);
-      },
-      async stop() {
-        await teamState.saveToDisk(stateDir);
-      },
-    });
   },
 };
 

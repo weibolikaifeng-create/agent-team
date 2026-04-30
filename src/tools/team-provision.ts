@@ -5,7 +5,8 @@ import { Type } from "@sinclair/typebox";
 import type { AnyAgentTool } from "openclaw/plugin-sdk/agent-team";
 import { TEAM_DIR_NAME, MAX_WORKERS, MAX_SPAWN_DEPTH, EXECUTIONS_DIR } from "../constants.js";
 import { generateSoulMd, generateAgentsMd } from "../soul-generator.js";
-import type { TeamStateManager } from "../team-state.js";
+import { readStateFromDisk, writeStateToDisk } from "../team-state.js";
+import type { TeamRecord } from "../team-state.js";
 import type { CollaborationMode, WorkerSpec } from "../templates.js";
 import { TEMPLATES } from "../templates.js";
 
@@ -93,7 +94,6 @@ type ApplyAgentConfigFn = (
 ) => Record<string, unknown>;
 
 export function createTeamProvisionTool(
-  teamState: TeamStateManager,
   stateDir: string,
   runtimeConfig: RuntimeConfig,
   applyAgentConfig: ApplyAgentConfigFn,
@@ -258,8 +258,9 @@ export function createTeamProvisionTool(
       // Brief delay for the gateway file watcher to pick up changes.
       await new Promise((resolve) => setTimeout(resolve, 500));
 
-      // Record team state.
-      teamState.addTeam({
+      // Record team state — read from disk, append, write back.
+      const state = await readStateFromDisk(stateDir);
+      const newTeam: TeamRecord = {
         teamId: team_id,
         teamName,
         templateId: params.template_id ?? "custom",
@@ -270,8 +271,9 @@ export function createTeamProvisionTool(
         createdAt: new Date().toISOString(),
         sessionKey: params.session_key,
         executions: [],
-      });
-      await teamState.saveToDisk(stateDir);
+      };
+      state.teams.push(newTeam);
+      await writeStateToDisk(stateDir, state);
 
       return {
         content: [
