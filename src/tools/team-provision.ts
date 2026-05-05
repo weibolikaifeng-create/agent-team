@@ -58,7 +58,7 @@ const TeamProvisionSchema = Type.Object(
       description: "The task this team will work on.",
     }),
     session_key: Type.String({
-      description: "Session key to bind this team to the current session. Required for session-based team filtering.",
+      description: "Session key to bind this team to the current session. Required for session-based team filtering. If the task originates from a channel (feishu, discord, slack, etc.), you MUST use the channel-bound session key, not the default 'main' session key.",
     }),
   },
   { additionalProperties: false },

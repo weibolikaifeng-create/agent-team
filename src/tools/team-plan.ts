@@ -14,7 +14,7 @@ const TeamPlanSchema = Type.Object(
       }),
     ),
     session_key: Type.String({
-      description: "Current session key for filtering reusable teams to the current session.",
+      description: "Current session key for filtering reusable teams to the current session. If the task originates from a channel (feishu, discord, slack, etc.), you MUST use the channel-bound session key, not the default 'main' session key.",
     }),
   },
   { additionalProperties: false },

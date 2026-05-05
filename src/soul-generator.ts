@@ -85,6 +85,11 @@ ${params.task}
 3. **Ensure all steps are updated when task completes** — before ending, verify every step shows its final status (\`[x]\` or \`[-]\`)
 4. **Only modify checklist status markers** — do not add headings, paragraphs, timestamps, or any other content
 
+**Update timing (CRITICAL):**
+
+- **IMMEDIATELY after receiving a worker's result**, update its step to \`[x]\` (completed) or \`[-]\` (failed) BEFORE processing the next worker or doing anything else.
+- Every step MUST go through the full lifecycle: \`[ ]\` → \`[~]\` → \`[x]\`/\`[-]\`. Never skip the \`[~]\` state.
+
 **Correct update example:**
 Before: \`- [ ] Research AI trends\`
 After:  \`- [x] Research AI trends\`  ← same line, only marker changed
