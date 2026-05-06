@@ -147,8 +147,6 @@ Parameters:
   timeoutSeconds: 0
 \`\`\`
 
-\`sessions_spawn\` returns a JSON object with \`childSessionKey\` — save it to poll the worker if needed.
-
 ## Waiting for Workers
 
 After spawning, end your turn. The worker sends results back automatically when done — do NOT poll.
@@ -191,38 +189,60 @@ Parse the first line to extract:
 
 ### Using the \`message\` Tool
 
-You push updates **directly to the channel** using the \`message\` tool. Three actions are available:
+🚨 **CRITICAL: You MUST invoke the message tool through a proper tool call, NOT by writing message content as plain text.**
+
+Your response must include a toolCall content block with the JSON structure shown below. **DO NOT** write the message content directly in text format. The message MUST be sent through the tool call mechanism.
+
+Three actions are available:
 
 #### 1. send — Send a new message
-\`\`\`
-Tool: message
-Parameters:
-  action: "send"
-  channel: "<channel from __channelInfo__>"
-  target: "<target from __channelInfo__>"
-  message: "<your formatted message>"
+
+\`\`\`json
+{
+  "type": "toolCall",
+  "id": "<xxx>",
+  "name": "message",
+  "arguments": {
+    "action": "send",
+    "channel": "<channel from __channelInfo__>",
+    "target": "<target from __channelInfo__>",
+    "message": "<your formatted message>"
+  }
+}
 \`\`\`
 
 #### 2. reply — Reply to the original message
-\`\`\`
-Tool: message
-Parameters:
-  action: "reply"
-  channel: "<channel from __channelInfo__>"
-  target: "<target from __channelInfo__>"
-  message: "<your formatted message>"
-  replyTo: "<msg_id from __channelInfo__>"
+
+\`\`\`json
+{
+  "type": "toolCall",
+  "id": "<xxx>",
+  "name": "message",
+  "arguments": {
+    "action": "reply",
+    "channel": "<channel from __channelInfo__>",
+    "target": "<target from __channelInfo__>",
+    "message": "<your formatted message>",
+    "replyTo": "<msg_id from __channelInfo__>"
+  }
+}
 \`\`\`
 
 #### 3. react — Add emoji reaction
-\`\`\`
-Tool: message
-Parameters:
-  action: "react"
-  channel: "<channel from __channelInfo__>"
-  target: "<target from __channelInfo__>"
-  messageId: "<msg_id from __channelInfo__>"
-  emoji: "👍"
+
+\`\`\`json
+{
+  "type": "toolCall",
+  "id": "<xxx>",
+  "name": "message",
+  "arguments": {
+    "action": "react",
+    "channel": "<channel from __channelInfo__>",
+    "target": "<target from __channelInfo__>",
+    "messageId": "<msg_id from __channelInfo__>",
+    "emoji": "👍"
+  }
+}
 \`\`\`
 
 ### When to Report
@@ -241,13 +261,15 @@ Parameters:
 - Key outputs (bullet list)
 - Files produced
 
-\`\`\`
-Tool: message
-Parameters:
-  action: "send"
-  channel: "<channel>"
-  target: "<target>"
-  message: "📊 **Team ${params.teamId} — Progress Update**\\n\\n**Worker:** <worker-role> (<worker-id>) completed\\n**Progress:** <N>/<total> workers done\\n\\n**Summary:**\\n<2-4 sentences with specific findings, data points, or deliverables — not just 'task completed'>\\n\\n**Key Outputs:**\\n- <concrete result 1>\\n- <concrete result 2>\\n\\n**Files Produced:**\\n- <filename> — <description>"
+**Invoke the message tool with these arguments:**
+
+\`\`\`json
+{
+  "action": "send",
+  "channel": "<channel from __channelInfo__>",
+  "target": "<target from __channelInfo__>",
+  "message": "📊 **Team ${params.teamId} — Progress Update**\\n\\n**Worker:** <worker-role> (<worker-id>) completed\\n**Progress:** <N>/<total> workers done\\n\\n**Summary:**\\n<2-4 sentences with specific findings, data points, or deliverables — not just 'task completed'>\\n\\n**Key Outputs:**\\n- <concrete result 1>\\n- <concrete result 2>\\n\\n**Files Produced:**\\n- <filename> — <description>"
+}
 \`\`\`
 
 ### Worker Failure Format
@@ -259,13 +281,15 @@ Parameters:
 - Impact
 - Next steps
 
-\`\`\`
-Tool: message
-Parameters:
-  action: "send"
-  channel: "<channel>"
-  target: "<target>"
-  message: "⚠️ **Team ${params.teamId} — Worker Failure**\\n\\n**Worker:** <worker-role> (<worker-id>) failed\\n\\n**Failure Reason:**\\n<detailed explanation>\\n\\n**Impact:**\\n<effect on overall task>\\n\\n**Next Steps:**\\n<retry / reassign / adjust / escalate>"
+**Invoke the message tool with these arguments:**
+
+\`\`\`json
+{
+  "action": "send",
+  "channel": "<channel from __channelInfo__>",
+  "target": "<target from __channelInfo__>",
+  "message": "⚠️ **Team ${params.teamId} — Worker Failure**\\n\\n**Worker:** <worker-role> (<worker-id>) failed\\n\\n**Failure Reason:**\\n<detailed explanation>\\n\\n**Impact:**\\n<effect on overall task>\\n\\n**Next Steps:**\\n<retry / reassign / adjust / escalate>"
+}
 \`\`\`
 
 ### Final Result Format
@@ -278,13 +302,15 @@ Parameters:
 - Key takeaways (bullet list)
 - Files produced
 
-\`\`\`
-Tool: message
-Parameters:
-  action: "send"
-  channel: "<channel>"
-  target: "<target>"
-  message: "🏁 **Team ${params.teamId} — Task Complete**\\n\\n**Task:** <restate the original task>\\n\\n**Executive Summary:**\\n<3-5 sentences for the end user — most important part>\\n\\n**Detailed Findings:**\\n<Synthesized content from ALL workers: ${params.workers.map(w => w.role).join(', ')}. Organized by topic/theme, not by worker.>\\n\\n**Key Takeaways:**\\n- <takeaway 1>\\n- <takeaway 2>\\n- <takeaway 3>\\n\\n**Files Produced:**\\n- <filename> — <description>"
+**Invoke the message tool with these arguments:**
+
+\`\`\`json
+{
+  "action": "send",
+  "channel": "<channel from __channelInfo__>",
+  "target": "<target from __channelInfo__>",
+  "message": "🏁 **Team ${params.teamId} — Task Complete**\\n\\n**Task:** <restate the original task>\\n\\n**Executive Summary:**\\n<3-5 sentences for the end user — most important part>\\n\\n**Detailed Findings:**\\n<Synthesized content from ALL workers: ${params.workers.map(w => w.role).join(', ')}. Organized by topic/theme, not by worker.>\\n\\n**Key Takeaways:**\\n- <takeaway 1>\\n- <takeaway 2>\\n- <takeaway 3>\\n\\n**Files Produced:**\\n- <filename> — <description>"
+}
 \`\`\`
 
 After pushing the final result, your job is done. End your turn normally.

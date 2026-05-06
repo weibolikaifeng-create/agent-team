@@ -57,9 +57,6 @@ const TeamProvisionSchema = Type.Object(
     task: Type.String({
       description: "The task this team will work on.",
     }),
-    session_key: Type.String({
-      description: "Session key to bind this team to the current session. Required for session-based team filtering. If the task originates from a channel (feishu, discord, slack, etc.), you MUST use the channel-bound session key, not the default 'main' session key.",
-    }),
   },
   { additionalProperties: false },
 );
@@ -74,7 +71,6 @@ type TeamProvisionParams = {
   workers?: WorkerSpec[];
   collaboration_mode?: CollaborationMode;
   task: string;
-  session_key: string;
 };
 
 type RuntimeConfig = {
@@ -95,6 +91,7 @@ type ApplyAgentConfigFn = (
 
 export function createTeamProvisionTool(
   stateDir: string,
+  systemSessionKey: string,
   runtimeConfig: RuntimeConfig,
   applyAgentConfig: ApplyAgentConfigFn,
 ): AnyAgentTool {
@@ -269,7 +266,7 @@ export function createTeamProvisionTool(
         collaborationMode,
         status: "ready",
         createdAt: new Date().toISOString(),
-        sessionKey: params.session_key,
+        sessionKey: systemSessionKey,
         executions: [],
       };
       state.teams.push(newTeam);

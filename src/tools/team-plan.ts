@@ -13,9 +13,6 @@ const TeamPlanSchema = Type.Object(
         description: "Optional preferred template ID to bias selection.",
       }),
     ),
-    session_key: Type.String({
-      description: "Current session key for filtering reusable teams to the current session. If the task originates from a channel (feishu, discord, slack, etc.), you MUST use the channel-bound session key, not the default 'main' session key.",
-    }),
   },
   { additionalProperties: false },
 );
@@ -23,17 +20,16 @@ const TeamPlanSchema = Type.Object(
 type TeamPlanParams = {
   task: string;
   preferred_template_id?: string;
-  session_key: string;
 };
 
-export function createTeamPlanTool(stateDir: string): AnyAgentTool {
+export function createTeamPlanTool(stateDir: string, sessionKey: string): AnyAgentTool {
   return {
     name: "team_plan",
     description:
       "Analyze a task and suggest the best multi-agent team template. Returns ranked template suggestions and any reusable existing teams.",
     parameters: TeamPlanSchema,
     async execute(_toolCallId: string, params: TeamPlanParams) {
-      const { task, preferred_template_id, session_key } = params;
+      const { task, preferred_template_id } = params;
 
       const ranked = rankTemplates(task);
 
@@ -59,7 +55,7 @@ export function createTeamPlanTool(stateDir: string): AnyAgentTool {
             (t) =>
               t.templateId === r.template.id &&
               t.status === "ready" &&
-              (session_key === undefined || t.sessionKey === session_key),
+              (sessionKey === undefined || t.sessionKey === sessionKey),
           )
           .map((team) => ({
             teamId: team.teamId,

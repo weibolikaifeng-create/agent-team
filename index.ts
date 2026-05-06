@@ -1,4 +1,4 @@
-import type { OpenClawPluginApi } from "openclaw/plugin-sdk/agent-team";
+import type { OpenClawPluginApi, OpenClawPluginToolContext } from "openclaw/plugin-sdk/agent-team";
 import { readStateFromDisk } from "./src/team-state.js";
 import { createTeamPlanTool } from "./src/tools/team-plan.js";
 import { createTeamProvisionTool } from "./src/tools/team-provision.js";
@@ -90,14 +90,23 @@ const plugin = {
     const stateDir = api.runtime.state.resolveStateDir();
 
     // Register the 5 team tools.
-    api.registerTool(createTeamPlanTool(stateDir));
-    api.registerTool(
-      createTeamProvisionTool(
+    api.registerTool((ctx: OpenClawPluginToolContext) => {
+      if (!ctx.sessionKey) {
+        throw new Error("[agent-team] ctx.sessionKey is missing — cannot register team_plan tool without a valid session key.");
+      }
+      return createTeamPlanTool(stateDir, ctx.sessionKey);
+    });
+    api.registerTool((ctx: OpenClawPluginToolContext) => {
+      if (!ctx.sessionKey) {
+        throw new Error("[agent-team] ctx.sessionKey is missing — cannot register team_provision tool without a valid session key.");
+      }
+      return createTeamProvisionTool(
         stateDir,
+        ctx.sessionKey,
         runtimeConfig,
-        applyAgentConfig as Parameters<typeof createTeamProvisionTool>[2],
-      ),
-    );
+        applyAgentConfig as Parameters<typeof createTeamProvisionTool>[3],
+      );
+    });
     api.registerTool(
       createTeamExecuteToolCompat(stateDir),
     );
