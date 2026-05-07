@@ -5,6 +5,7 @@ import { createTeamProvisionTool } from "./src/tools/team-provision.js";
 import { createTeamExecuteToolCompat } from "./src/tools/team-execute.js";
 import { createTeamCleanupToolCompat } from "./src/tools/team-cleanup.js";
 import { createTeamCompleteTool } from "./src/tools/team-complete.js";
+import { createTeamUpdateProgressTool } from "./src/tools/team-update-progress.js";
 import type { RuntimeConfig, PruneAgentConfigFn } from "./src/tools/team-cleanup.js";
 
 // Inlined from core to avoid relative path dependency on src/ (not shipped in npm).
@@ -89,7 +90,7 @@ const plugin = {
     const runtimeConfig = api.runtime.config;
     const stateDir = api.runtime.state.resolveStateDir();
 
-    // Register the 5 team tools.
+    // Register the 6 team tools.
     api.registerTool((ctx: OpenClawPluginToolContext) => {
       if (!ctx.sessionKey) {
         throw new Error("[agent-team] ctx.sessionKey is missing — cannot register team_plan tool without a valid session key.");
@@ -111,6 +112,7 @@ const plugin = {
       createTeamExecuteToolCompat(stateDir),
     );
     api.registerTool(createTeamCompleteTool(stateDir));
+    api.registerTool(createTeamUpdateProgressTool(stateDir));
     api.registerTool(
       createTeamCleanupToolCompat(
         stateDir,

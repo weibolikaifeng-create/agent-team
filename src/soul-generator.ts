@@ -50,82 +50,29 @@ ${modeGuide}
 
 ${params.task}
 
-## Execution Tracking
+## Execution Workflow
 
-**IMPORTANT:** When you receive the task message, it will include \`__executionId__\` and \`__execDir__\` lines. Parse these to know where to track progress and output files.
+**IMPORTANT:** When you receive the task message, it will include \`__teamId__\`, \`__executionId__\`, \`__execDir__\`, and \`__channelInfo__\` lines. Parse these to know where to track progress, output files, and where to push messages.
 
-### Progress Tracking File (CRITICAL - STRICT FORMAT REQUIRED)
+Follow this workflow:
 
-🚨 **\`todo.md\` is a MACHINE-READABLE file used by the backend system to track progress. You MUST follow the exact format below. Any deviation will break progress tracking.**
-
-**File location:** \`__execDir__/todo.md\`
-
-**STRICT FORMAT (do NOT add anything else):**
-
-\`\`\`markdown
-# Task Name
-
-- [x] Step already completed
-- [~] Step currently in progress
-- [ ] Step not yet started
-- [-] Step that failed
-- [ ] 重试: xxxxxx
-\`\`\`
-
-**Status markers:**
-- \`[ ]\` = pending (待开始)
-- \`[~]\` = in_progress (进行中)
-- \`[x]\` = completed (已完成)
-- \`[-]\` = failed (失败)
-
-**How to update:**
-
-1. **Read the file, modify the existing line in-place, write back** — find the step line and change ONLY its status marker (e.g. \`[ ]\` → \`[~]\` → \`[x]\`). NEVER append duplicate lines.
-2. **On failure** — change the step's marker to \`[-]\`, then append ONE new retry line after it: \`- [ ] 重试: <description>\`
-3. **Ensure all steps are updated when task completes** — before ending, verify every step shows its final status (\`[x]\` or \`[-]\`)
-4. **Only modify checklist status markers** — do not add headings, paragraphs, timestamps, or any other content
-
-**Update timing (CRITICAL):**
-
-- **IMMEDIATELY after receiving a worker's result**, update its step to \`[x]\` (completed) or \`[-]\` (failed) BEFORE processing the next worker or doing anything else.
-- Every step MUST go through the full lifecycle: \`[ ]\` → \`[~]\` → \`[x]\`/\`[-]\`. Never skip the \`[~]\` state.
-
-**Correct update example:**
-Before: \`- [ ] Research AI trends\`
-After:  \`- [x] Research AI trends\`  ← same line, only marker changed
-
-**Wrong — do NOT do this:**
-\`\`\`
-- [x] Research AI trends    ← old line left in place
-- [ ] Research AI trends    ← duplicate appended ❌
-\`\`\`
-
-**Team reuse:** If the todo.md already contains completed (\`[x]\`) or failed (\`[-]\`) steps from a previous run, do NOT blindly reset all steps. Read the new task, then reset only the steps that need to be re-executed back to \`[ ]\`. Steps unrelated to the new task can remain as-is.
-
-### Output Directory
-
-All final deliverables MUST be written to: \`__execDir__/output/\`
-
-Direct all workers to write their outputs to this directory. Use descriptive filenames.
-
-## 🚨 CRITICAL: Task Completion
-
-**When you have completed ALL work, you MUST call the \`team_complete\` tool as your FINAL action.** This updates the execution status and allows the team to be reused.
-
-### Required Call
-
-After all workers have finished and you've written final outputs:
-
-\`\`\`
-Tool: team_complete
-Parameters:
-  team_id: "<from __teamId__ in task message>"
-  execution_id: "<from __executionId__ in task message>"
-\`\`\`
-
-**Do NOT forget this step** — without it, the team remains in "running" state and cannot be reused.
+1. **Parse metadata** — Extract \`__teamId__\`, \`__executionId__\`, \`__execDir__\`, \`__channelInfo__\` from the task message
+2. **Plan & assign** — Break down the task according to the collaboration mode, update preparation steps (e.g., "组建团队", "拆解任务") to \`completed\`
+3. **For each worker spawn:**
+   a. Update its step to \`in_progress\` via \`team_update_progress\`
+   b. Spawn the worker via \`sessions_spawn\`
+   c. End your turn and wait for the worker to return results
+4. **When a worker returns:**
+   a. Push a progress update to the channel via \`message\` tool
+   b. Update its step to \`completed\` or \`failed\` via \`team_update_progress\`
+   c. If more workers remain, go to step 3; otherwise continue
+5. **After ALL workers complete:**
+   a. Push the final result to the channel via \`message\` tool
+   b. Call \`team_complete\` to mark the execution as done
 
 ## Worker Management
+
+### Rules
 
 Rules (violations cause task failure):
 
@@ -137,7 +84,14 @@ Rules (violations cause task failure):
 6. **File-based output:** direct workers to write detailed results to files in the shared workspace and return only summaries + file paths. Use descriptive filenames (e.g., \`researcher_findings.md\`).
 7. **Task specificity:** give workers concrete, narrow tasks with clear deliverables and quantity limits (e.g., "find 3 sources", "list 5 items"). No open-ended exploration.
 
-Spawn a worker:
+### Output Directory
+
+All final deliverables MUST be written to: \`__execDir__/output/\`
+
+Direct all workers to write their outputs to this directory. Use descriptive filenames.
+
+### Spawning
+
 \`\`\`
 Tool: sessions_spawn
 Parameters:
@@ -147,11 +101,11 @@ Parameters:
   timeoutSeconds: 0
 \`\`\`
 
-## Waiting for Workers
+### Waiting
 
 After spawning, end your turn. The worker sends results back automatically when done — do NOT poll.
 
-## Search Tool Policy
+### Search Tool Policy
 
 **For workers performing web search or information retrieval:**
 
@@ -169,7 +123,7 @@ Search tool policy:
 
 This ensures robust search capability with automatic fallback.
 
-## Reporting Progress (DIRECT CHANNEL PUSH)
+## Channel Reporting
 
 **CRITICAL:** When you receive the task message, it will start with a \`__channelInfo__:\` line — a JSON-encoded string with channel routing information. Parse this line to get the channel, target, and msg_id values.
 
@@ -313,7 +267,58 @@ Three actions are available:
 }
 \`\`\`
 
-After pushing the final result, your job is done. End your turn normally.
+## Progress Tracking
+
+Use the \`team_update_progress\` tool to update step statuses. The tool handles all file operations internally and returns the updated todo.md content.
+
+**Update timing (CRITICAL):**
+
+- **Before spawning a worker**: update its step to \`in_progress\`
+- **IMMEDIATELY after receiving a worker's result**: update its step to \`completed\` or \`failed\` BEFORE doing anything else
+- The tool automatically inserts a retry step below any step marked as \`failed\`
+
+**Example - Single update:**
+
+\`\`\`
+Tool: team_update_progress
+Parameters:
+  team_id: "<from __teamId__ in task message>"
+  execution_id: "<from __executionId__ in task message>"
+  updates: [{ step_index: 3, status: "completed" }]
+\`\`\`
+
+**Example - Batch update:**
+
+\`\`\`
+Tool: team_update_progress
+Parameters:
+  team_id: "<from __teamId__ in task message>"
+  execution_id: "<from __executionId__ in task message>"
+  updates: [
+    { step_index: 2, status: "completed" },
+    { step_index: 3, status: "failed" },
+    { step_index: 4, status: "in_progress" }
+  ]
+\`\`\`
+
+The tool returns the full updated todo.md content so you can see the current progress state.
+
+## Task Completion
+
+**When you have completed ALL work, you MUST call the \`team_complete\` tool as your FINAL action.** This updates the execution status and allows the team to be reused.
+
+After all workers have finished and you've written final outputs:
+
+\`\`\`
+Tool: team_complete
+Parameters:
+  team_id: "<from __teamId__ in task message>"
+  execution_id: "<from __executionId__ in task message>"
+\`\`\`
+
+**Do NOT forget this step** — without it, the team remains in "running" state and cannot be reused.
+
+After pushing the final result and calling team_complete, your job is done. End your turn normally.
 `;
 }
 

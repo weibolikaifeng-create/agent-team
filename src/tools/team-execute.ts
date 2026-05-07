@@ -8,7 +8,7 @@ import { TEAM_DIR_NAME, EXECUTIONS_DIR, TODO_FILE, OUTPUT_DIR } from "../constan
 const ChannelInfoSchema = Type.Object({
   channel: Type.String({ description: "Channel type: feishu, discord, slack, etc." }),
   target: Type.String({ description: "User or channel ID to send messages to." }),
-  msg_id: Type.Optional(Type.String({ description: "Original message ID (for reply/react actions)." })),
+  msg_id: Type.Optional(Type.Union([Type.String(), Type.Null()], { description: "Original message ID (for reply/react actions)." })),
 });
 
 const TeamExecuteSchema = Type.Object(
@@ -20,7 +20,7 @@ const TeamExecuteSchema = Type.Object(
     ),
     steps: Type.Array(Type.String(), {
       description:
-        'Task-specific step descriptions for todo.md progress tracking. Structure: (1) 1-2 general preparation steps (e.g. team setup, task breakdown), (2) one step per team worker matching their role and responsibility — use the worker\'s role name as prefix followed by their specific task from this execution (e.g. "Search Specialist 1: Research DeepSeek V4 architecture and MoE design"). The number of worker steps MUST equal the number of workers in the team, and each step should correspond to one worker. Do NOT add extra steps for roles that don\'t exist in the team. Example for a team with [Search Specialist 1, Search Specialist 2, Report Writer]: ["Set up agent team", "Break down tasks and assign roles", "Search Specialist 1: Research DeepSeek V4 architecture and MoE design", "Search Specialist 2: Research DeepSeek V4 training methods and performance", "Report Writer: Synthesize findings into DeepSeek V4 technical report"].',
+        'Array of step descriptions for progress tracking. Include 1-2 preparation steps (e.g., "Set up agent team", "Break down tasks"), then one step per worker with their specific task. Example: ["Set up agent team", "Break down tasks and assign roles", "Search Specialist 1: Research DeepSeek V4 architecture", "Search Specialist 2: Research DeepSeek V4 training methods", "Report Writer: Write technical comparison report"]',
     }),
     channel_info: ChannelInfoSchema,
   },
