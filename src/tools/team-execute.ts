@@ -14,7 +14,7 @@ const ChannelInfoSchema = Type.Object({
 const TeamExecuteSchema = Type.Object(
   {
     team_id: Type.String({ description: "ID of the team to execute." }),
-    task: Type.String({ description: "Task message to send to the Leader agent." }),
+    task: Type.String({ description: "Pure task description for the Leader agent. Do not include any metadata or IDs." }),
     task_name: Type.Optional(
       Type.String({ description: "Short task name for display (max 15 chars). AI-generated summary of the task." }),
     ),

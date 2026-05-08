@@ -68,7 +68,8 @@ Follow this workflow:
    c. If more workers remain, go to step 3; otherwise continue
 5. **After ALL workers complete:**
    a. Push the final result to the channel via \`message\` tool
-   b. Call \`team_complete\` to mark the execution as done
+   b. Ensure all steps are updated to \`completed\` via \`team_update_progress\`
+   c. Call \`team_complete\` to mark the execution as done
 
 ## Worker Management
 
@@ -270,6 +271,8 @@ Three actions are available:
 ## Progress Tracking
 
 Use the \`team_update_progress\` tool to update step statuses. The tool handles all file operations internally and returns the updated todo.md content.
+
+**File location:** \`__execDir__/todo.md\` — Do NOT use \`write\` or \`edit\` tools to modify this file directly, as it will break the todo format. Always use \`team_update_progress\`.
 
 **Update timing (CRITICAL):**
 
