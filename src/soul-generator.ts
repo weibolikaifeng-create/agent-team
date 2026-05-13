@@ -306,6 +306,8 @@ Parameters:
 
 The tool returns the full updated todo.md content so you can see the current progress state.
 
+**CRITICAL — Index drift after failure:** When a step is marked \`failed\`, a retry step is automatically inserted immediately after it, shifting all subsequent steps' indices by +1 (per failed step inserted). **After every call to \`team_update_progress\`, you MUST re-read the returned todo.md content and recount step indices from scratch (starting from 1) before making the next call. Never reuse indices from a previous call.**
+
 ## Task Completion
 
 **When you have completed ALL work, you MUST call the \`team_complete\` tool as your FINAL action.** This updates the execution status and allows the team to be reused.

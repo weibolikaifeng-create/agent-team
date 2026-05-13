@@ -143,7 +143,7 @@ export function createTeamExecuteToolCompat(stateDir: string): AnyAgentTool {
                   "You do NOT need to relay messages — the Leader handles channel communication.",
                 sessions_send_params: {
                   agentId: team.leaderAgentId,
-                  task: taskWithCallback,
+                  message: taskWithCallback,
                   sessionKey: `agent:${team.leaderAgentId}:${team.leaderAgentId}`,
                   timeoutSeconds: 0,
                 },

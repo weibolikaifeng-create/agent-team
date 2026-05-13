@@ -140,7 +140,7 @@ team_execute(
 - **`sessions_send_params`** — call `sessions_send` with these parameters:
   - `agentId`: Leader agent ID
   - `sessionKey`: Leader’s session key
-  - `task`: includes `__channelInfo__` prefix with channel routing information
+  - `message`: prefixed with `__teamId__`, `__executionId__`, `__execDir__`, `__channelInfo__` metadata, followed by the task content
   - `timeoutSeconds`: `0` (fire-and-forget)
 
 Call `sessions_send` with these params, tell the user the team is working, then end your turn. The Leader pushes updates directly to the channel.
