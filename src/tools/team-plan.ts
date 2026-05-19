@@ -1,5 +1,5 @@
-import { Type } from "@sinclair/typebox";
-import type { AnyAgentTool } from "openclaw/plugin-sdk/agent-team";
+import { Type } from "typebox";
+import type { AnyAgentTool } from "../types.js";
 import { readStateFromDisk } from "../team-state.js";
 import { TEMPLATES, rankTemplates } from "../templates.js";
 

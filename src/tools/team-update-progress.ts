@@ -1,7 +1,7 @@
 import fs from "node:fs/promises";
 import path from "node:path";
-import { Type } from "@sinclair/typebox";
-import type { AnyAgentTool } from "openclaw/plugin-sdk/agent-team";
+import { Type } from "typebox";
+import type { AnyAgentTool } from "../types.js";
 import { readStateFromDisk } from "../team-state.js";
 import { TEAM_DIR_NAME, EXECUTIONS_DIR, TODO_FILE } from "../constants.js";
 

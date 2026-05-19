@@ -1,8 +1,8 @@
 import fs from "node:fs/promises";
 import path from "node:path";
 import crypto from "node:crypto";
-import { Type } from "@sinclair/typebox";
-import type { AnyAgentTool } from "openclaw/plugin-sdk/agent-team";
+import { Type } from "typebox";
+import type { AnyAgentTool } from "../types.js";
 import { TEAM_DIR_NAME, MAX_WORKERS, MAX_SPAWN_DEPTH, EXECUTIONS_DIR } from "../constants.js";
 import { generateSoulMd, generateAgentsMd } from "../soul-generator.js";
 import { readStateFromDisk, writeStateToDisk } from "../team-state.js";
@@ -230,22 +230,15 @@ export function createTeamProvisionTool(
         };
       }
 
-      // Add Leader and main to A2A allow list and ensure A2A is enabled.
+      // Enable A2A with wildcard allow (all agents can communicate).
       const tools = (nextCfg as Record<string, Record<string, unknown>>).tools ?? {};
       const a2a = (tools.agentToAgent as Record<string, unknown>) ?? {};
-      const allow = Array.isArray(a2a.allow) ? [...a2a.allow] : [];
-      if (!allow.includes("main")) {
-        allow.push("main");
-      }
-      if (!allow.includes(leaderAgentId)) {
-        allow.push(leaderAgentId);
-      }
       const sessions = (tools.sessions as Record<string, unknown>) ?? {};
       nextCfg = {
         ...nextCfg,
         tools: {
           ...tools,
-          agentToAgent: { ...a2a, enabled: true, allow },
+          agentToAgent: { ...a2a, enabled: true, allow: ["*"] },
           sessions: { ...sessions, visibility: "all" },
         },
       };

@@ -1,6 +1,6 @@
 import path from "node:path";
-import { Type } from "@sinclair/typebox";
-import type { AnyAgentTool } from "openclaw/plugin-sdk/agent-team";
+import { Type } from "typebox";
+import type { AnyAgentTool } from "../types.js";
 import { TEAM_DIR_NAME } from "../constants.js";
 import { readStateFromDisk, writeStateToDisk } from "../team-state.js";
 

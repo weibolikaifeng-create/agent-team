@@ -2,7 +2,21 @@
   "id": "agent-team",
   "name": "Agent Team",
   "description": "Dynamic multi-agent team orchestration with template-based provisioning.",
+  "enabledByDefault": true,
+  "activation": {
+    "onStartup": true
+  },
   "skills": ["./skills"],
+  "contracts": {
+    "tools": [
+      "team_plan",
+      "team_provision",
+      "team_execute",
+      "team_complete",
+      "team_update_progress",
+      "team_cleanup"
+    ]
+  },
   "configSchema": {
     "type": "object",
     "additionalProperties": false,

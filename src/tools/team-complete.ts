@@ -1,5 +1,5 @@
-import { Type } from "@sinclair/typebox";
-import type { AnyAgentTool } from "openclaw/plugin-sdk/agent-team";
+import { Type } from "typebox";
+import type { AnyAgentTool } from "../types.js";
 import { readStateFromDisk, writeStateToDisk } from "../team-state.js";
 
 const TeamCompleteSchema = Type.Object(

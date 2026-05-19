@@ -1,4 +1,3 @@
-import type { OpenClawPluginApi, OpenClawPluginToolContext } from "openclaw/plugin-sdk/agent-team";
 import { readStateFromDisk } from "./src/team-state.js";
 import { createTeamPlanTool } from "./src/tools/team-plan.js";
 import { createTeamProvisionTool } from "./src/tools/team-provision.js";
@@ -86,46 +85,46 @@ const plugin = {
   id: "agent-team",
   name: "Agent Team",
   description: "Dynamic multi-agent team orchestration.",
-  register(api: OpenClawPluginApi) {
+  register(api: any) {
+    console.log("[agent-team] register() called");
     const runtimeConfig = api.runtime.config;
     const stateDir = api.runtime.state.resolveStateDir();
+    console.log("[agent-team] stateDir:", stateDir);
 
     // Register the 6 team tools.
-    api.registerTool((ctx: OpenClawPluginToolContext) => {
-      if (!ctx.sessionKey) {
-        throw new Error("[agent-team] ctx.sessionKey is missing — cannot register team_plan tool without a valid session key.");
-      }
-      return createTeamPlanTool(stateDir, ctx.sessionKey);
-    });
-    api.registerTool((ctx: OpenClawPluginToolContext) => {
-      if (!ctx.sessionKey) {
-        throw new Error("[agent-team] ctx.sessionKey is missing — cannot register team_provision tool without a valid session key.");
-      }
+    api.registerTool((ctx: any) => {
+      const sessionKey = ctx.sessionKey ?? "default";
+      return createTeamPlanTool(stateDir, sessionKey);
+    }, { name: "team_plan" });
+    api.registerTool((ctx: any) => {
+      const sessionKey = ctx.sessionKey ?? "default";
       return createTeamProvisionTool(
         stateDir,
-        ctx.sessionKey,
+        sessionKey,
         runtimeConfig,
         applyAgentConfig as Parameters<typeof createTeamProvisionTool>[3],
       );
-    });
+    }, { name: "team_provision" });
     api.registerTool(
       createTeamExecuteToolCompat(stateDir),
+      { name: "team_execute" },
     );
-    api.registerTool(createTeamCompleteTool(stateDir));
-    api.registerTool(createTeamUpdateProgressTool(stateDir));
+    api.registerTool(createTeamCompleteTool(stateDir), { name: "team_complete" });
+    api.registerTool(createTeamUpdateProgressTool(stateDir), { name: "team_update_progress" });
     api.registerTool(
       createTeamCleanupToolCompat(
         stateDir,
         runtimeConfig,
         pruneAgentConfig as unknown as PruneAgentConfigFn,
       ),
+      { name: "team_cleanup" },
     );
 
     // Allow team leader sessions to use mode="session" + thread=true
     // without requiring a channel plugin (Discord, Feishu, etc.).
     // Only intercepts agent-team's own leader spawns; other agents are
     // left to channel-specific hooks.
-    api.on("subagent_spawning", async (event) => {
+    api.on("subagent_spawning", async (event: any) => {
       if (!event.threadRequested) return;
       const isTeamLeader =
         event.agentId?.startsWith("leader-") || event.label?.startsWith("team-");
@@ -134,18 +133,16 @@ const plugin = {
     });
 
     // Inject active teams routing table and message handling guidelines into main's system prompt.
-    api.on("before_prompt_build", async (_event, ctx) => {
+    api.on("before_prompt_build", async (_event: any, ctx: any) => {
       if (ctx.agentId !== "main") return;
       const state = await readStateFromDisk(stateDir);
-      const active = state.teams.filter((t) => t.status !== "completed" && t.status !== "error");
+      const active = state.teams.filter((t: any) => t.status !== "completed" && t.status !== "error");
       const lines = active.map(
-        (t) =>
+        (t: any) =>
           `- **${t.teamName}** (\`${t.teamId}\`) | Leader: \`${t.leaderAgentId}\` | Status: ${t.status}`,
       );
 
       let append = `\n## Active Agent Teams\n${lines.join("\n")}\n`;
-
-      // No additional relay guidelines needed — Leaders push directly to channels
 
       return { appendSystemContext: append };
     });
