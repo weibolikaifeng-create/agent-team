@@ -178,11 +178,33 @@ export function createTeamUpdateProgressTool(stateDir: string): AnyAgentTool {
         };
       }
 
+      // Build numbered step list for response
+      const updatedLines = updatedContent.split("\n");
+      const numberedSteps: string[] = [];
+      let stepNum = 0;
+      for (const line of updatedLines) {
+        if (/^- \[[ ~x\-]\] /.test(line)) {
+          stepNum++;
+          // Replace "- " prefix with numbered prefix
+          numberedSteps.push(`${stepNum}、${line.slice(2)}`);
+        }
+      }
+
+      const response: { content: string; numbered_steps: string; notice?: string } = {
+        content: updatedContent,
+        numbered_steps: numberedSteps.join("\n"),
+      };
+
+      if (failedSteps.length > 0) {
+        response.notice =
+          "Retry steps have been inserted. Step indices have shifted — use the numbered_steps above for subsequent updates.";
+      }
+
       return {
         content: [
           {
             type: "text" as const,
-            text: JSON.stringify({ content: updatedContent }, null, 2),
+            text: JSON.stringify(response, null, 2),
           },
         ],
       };

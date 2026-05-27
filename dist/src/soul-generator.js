@@ -1,30 +1,13 @@
-import type { CollaborationMode, WorkerSpec } from "./templates.js";
-
-export type SoulMdParams = {
-  teamId: string;
-  teamName: string;
-  leaderRole: string;
-  leaderPersonality: string;
-  coreInstruction: string;
-  workers: WorkerSpec[];
-  collaborationMode: CollaborationMode;
-  modeInstruction: string;
-  task: string;
-  executionId?: string;
-};
-
 /**
  * Generate SOUL.md content for the Leader agent's workspace.
  * This becomes the Leader's personality and instructions.
  */
-export function generateSoulMd(params: SoulMdParams): string {
-  const workerList = params.workers
-    .map((w) => `- **${w.role}** (\`${w.id}\`): ${w.responsibility}`)
-    .join("\n");
-
-  const modeGuide = getModeGuide(params.collaborationMode, params.workers);
-
-  return `# ${params.leaderRole}
+export function generateSoulMd(params) {
+    const workerList = params.workers
+        .map((w) => `- **${w.role}** (\`${w.id}\`): ${w.responsibility}`)
+        .join("\n");
+    const modeGuide = getModeGuide(params.collaborationMode, params.workers);
+    return `# ${params.leaderRole}
 
 ## Identity
 
@@ -332,11 +315,10 @@ Parameters:
 After pushing the final result and calling team_complete, your job is done. End your turn normally.
 `;
 }
-
-function getModeGuide(mode: CollaborationMode, workers: WorkerSpec[]): string {
-  switch (mode) {
-    case "pipeline":
-      return `### Pipeline Execution Guide
+function getModeGuide(mode, workers) {
+    switch (mode) {
+        case "pipeline":
+            return `### Pipeline Execution Guide
 
 Run workers **sequentially**. Each worker receives the previous worker's output as input context.
 
@@ -351,9 +333,8 @@ Order: ${workers.map((w) => `\`${w.id}\``).join(" → ")}
 2. Wait for completion, then spawn the next worker with the accumulated context and specific directive.
 3. Continue until all workers have completed.
 4. Compile the final output from all workers' results by integrating findings from all team members.`;
-
-    case "mapreduce":
-      return `### Map-Reduce Execution Guide
+        case "mapreduce":
+            return `### Map-Reduce Execution Guide
 
 **Map phase:** Spawn multiple workers **in parallel** on the same (or split) task.
 **Reduce phase:** Collect all outputs and synthesize them into a unified result.
@@ -368,9 +349,8 @@ Order: ${workers.map((w) => `\`${w.id}\``).join(" → ")}
 3. Wait for all to complete.
 4. If there are reduce-phase workers, feed combined file-based outputs to them sequentially with clear directives.
 5. **CRITICAL:** As the leader, compile the final synthesis by integrating all workers' findings - DO NOT simply forward one worker's output as the final result.`;
-
-    case "supervisor":
-      return `### Supervisor Execution Guide
+        case "supervisor":
+            return `### Supervisor Execution Guide
 
 You have direct oversight of all workers. Assign tasks dynamically based on progress.
 
@@ -384,32 +364,24 @@ You have direct oversight of all workers. Assign tasks dynamically based on prog
 3. Monitor progress and reassign or provide more specific direction as needed if workers are being inefficient.
 4. **CRITICAL:** Ensure all workers write detailed results to files in the shared workspace and only return summaries/file paths.
 5. Compile the final output once all subtasks are complete by integrating all workers' findings, not by forwarding one worker's output.`;
-  }
+    }
 }
-
-export type AgentsMdParams = {
-  teamId: string;
-  teamName: string;
-  leaderRole: string;
-  workers: WorkerSpec[];
-};
-
 /**
  * Generate AGENTS.md content listing team members.
  */
-export function generateAgentsMd(params: AgentsMdParams): string {
-  const lines = [
-    `# Team: ${params.teamName}`,
-    "",
-    `**Team ID:** \`${params.teamId}\``,
-    "",
-    "## Members",
-    "",
-    `| Role | ID | Responsibility |`,
-    `| --- | --- | --- |`,
-    `| ${params.leaderRole} (Leader) | leader-${params.teamId} | Orchestrates team and compiles results |`,
-    ...params.workers.map((w) => `| ${w.role} | ${w.id} | ${w.responsibility} |`),
-    "",
-  ];
-  return lines.join("\n");
+export function generateAgentsMd(params) {
+    const lines = [
+        `# Team: ${params.teamName}`,
+        "",
+        `**Team ID:** \`${params.teamId}\``,
+        "",
+        "## Members",
+        "",
+        `| Role | ID | Responsibility |`,
+        `| --- | --- | --- |`,
+        `| ${params.leaderRole} (Leader) | leader-${params.teamId} | Orchestrates team and compiles results |`,
+        ...params.workers.map((w) => `| ${w.role} | ${w.id} | ${w.responsibility} |`),
+        "",
+    ];
+    return lines.join("\n");
 }
