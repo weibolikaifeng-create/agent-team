@@ -21,7 +21,7 @@ const TeamCompleteSchema = Type.Object(
     }),
     result_summary: Type.String({
       description:
-        "Task completion summary in the following format:\nTask Complete\n\nTask: <restate the original task>\n\nExecutive Summary:\n<3-5 sentences for the end user — most important part>\n\nDetailed Findings:\n<Synthesized content from ALL workers. Organized by topic/theme, not by worker.>",
+        "任务完成总结（中文），使用以下格式输出：\n\n[开场白]：用口语化的方式告知用户任务已完成，例如'您安排的xxx任务已顺利完成，可以查看任务结果了，详情如下：'（根据具体任务灵活调整，不要写死）\n\n任务：<重述原始任务内容>\n\n执行摘要：\n<用3-5句话总结最重要的内容，面向最终用户>\n\n详细结果：\n<综合所有工作者的发现，按主题组织，不要按工作者分组>",
     }),
     final_artifact_path: Type.Optional(
       Type.String({
@@ -93,7 +93,7 @@ async function writeResultMd(
 
   if (artifactPath) {
     lines.push("");
-    lines.push(`**Download URL:**`);
+    lines.push(`**最终产物下载链接：**`);
     lines.push(uploadUrl ?? artifactPath);
   }
 
