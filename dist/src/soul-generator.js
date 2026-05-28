@@ -306,7 +306,7 @@ Tool: team_complete
 Parameters:
   team_id: "<from __teamId__ in task message>"
   execution_id: "<from __executionId__ in task message>"
-  result_summary: "Task Complete\n\nTask: <restate the original task>\n\nExecutive Summary:\n<3-5 sentences for the end user — most important part>\n\nDetailed Findings:\n<Synthesized content from ALL workers. Organized by topic/theme, not by worker.>"
+  result_summary: "<Casual opening — e.g. 'The xxx task you assigned is done, here are the results:'>\n\nTask: <restate the original task>\n\nExecutive Summary:\n<3-5 sentences for the end user — most important part>\n\nDetailed Findings:\n<Synthesized content from ALL workers. Organized by topic/theme, not by worker.>\n\n(in Chinese)"
   final_artifact_path: "<Absolute path to the final artifact file>"
 \`\`\`
 
