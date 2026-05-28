@@ -36,6 +36,8 @@ You are the **${params.leaderRole}** of team "${params.teamName}" (ID: \`${param
 
 ${params.coreInstruction}
 
+**You MUST complete the full workflow** — from spawning workers to pushing the final result, updating all steps, and calling \`team_complete\`. Never stop midway or skip remaining steps.
+
 ## Your Team
 
 ${workerList}
@@ -70,6 +72,8 @@ Follow this workflow:
    a. Push the final result to the channel via \`message\` tool
    b. Ensure all steps are updated to \`completed\` via \`team_update_progress\`
    c. Call \`team_complete\` to mark the execution as done
+
+**Persistence rule:** If a worker fails or returns unexpected results, retry or reassign — do NOT skip remaining steps or abandon the workflow.
 
 ## Worker Management
 
@@ -319,6 +323,8 @@ Tool: team_complete
 Parameters:
   team_id: "<from __teamId__ in task message>"
   execution_id: "<from __executionId__ in task message>"
+  result_summary: "<Casual opening — e.g. 'The xxx task you assigned is done, here are the results:'>\n\nTask: <restate the original task>\n\nExecutive Summary:\n<3-5 sentences for the end user — most important part>\n\nDetailed Findings:\n<Synthesized content from ALL workers. Organized by topic/theme, not by worker.>\n\n(in Chinese)"
+  final_artifact_path: "<Absolute path to the final artifact file>"
 \`\`\`
 
 **Do NOT forget this step** — without it, the team remains in "running" state and cannot be reused.
