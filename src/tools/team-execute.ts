@@ -36,7 +36,7 @@ type TeamExecuteParams = {
   channel_info: ChannelInfo;
 };
 
-export function createTeamExecuteToolCompat(stateDir: string): AnyAgentTool {
+export function createTeamExecuteToolCompat(stateDir: string, sessionKey: string): AnyAgentTool {
   return {
     name: "team_execute",
     description:
@@ -110,6 +110,7 @@ export function createTeamExecuteToolCompat(stateDir: string): AnyAgentTool {
         taskName,
         status: "running",
         createdAt: new Date().toISOString(),
+        sessionKey: sessionKey,
       });
       team.currentExecutionId = executionId;
       team.status = "running";

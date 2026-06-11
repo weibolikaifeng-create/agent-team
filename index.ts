@@ -105,10 +105,10 @@ const plugin = {
         applyAgentConfig as Parameters<typeof createTeamProvisionTool>[3],
       );
     }, { name: "team_provision" });
-    api.registerTool(
-      createTeamExecuteToolCompat(stateDir),
-      { name: "team_execute" },
-    );
+    api.registerTool((ctx: any) => {
+      const sessionKey = ctx.sessionKey ?? "default";
+      return createTeamExecuteToolCompat(stateDir, sessionKey);
+    }, { name: "team_execute" });
     api.registerTool(createTeamCompleteTool(stateDir), { name: "team_complete" });
     api.registerTool(createTeamUpdateProgressTool(stateDir), { name: "team_update_progress" });
     api.registerTool(

@@ -17,7 +17,7 @@ const TeamExecuteSchema = Type.Object({
     }),
     channel_info: ChannelInfoSchema,
 }, { additionalProperties: false });
-export function createTeamExecuteToolCompat(stateDir) {
+export function createTeamExecuteToolCompat(stateDir, sessionKey) {
     return {
         name: "team_execute",
         description: "Start a team execution. Creates an execution instance with todo.md and output/ directory. Returns the sessions_send parameters you must call to activate the Leader agent. The Leader will push progress updates directly to the channel using the message tool.",
@@ -82,6 +82,7 @@ export function createTeamExecuteToolCompat(stateDir) {
                 taskName,
                 status: "running",
                 createdAt: new Date().toISOString(),
+                sessionKey: sessionKey,
             });
             team.currentExecutionId = executionId;
             team.status = "running";

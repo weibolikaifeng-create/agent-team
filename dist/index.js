@@ -76,7 +76,10 @@ const plugin = {
             const sessionKey = ctx.sessionKey ?? "default";
             return createTeamProvisionTool(stateDir, sessionKey, runtimeConfig, applyAgentConfig);
         }, { name: "team_provision" });
-        api.registerTool(createTeamExecuteToolCompat(stateDir), { name: "team_execute" });
+        api.registerTool((ctx) => {
+            const sessionKey = ctx.sessionKey ?? "default";
+            return createTeamExecuteToolCompat(stateDir, sessionKey);
+        }, { name: "team_execute" });
         api.registerTool(createTeamCompleteTool(stateDir), { name: "team_complete" });
         api.registerTool(createTeamUpdateProgressTool(stateDir), { name: "team_update_progress" });
         api.registerTool(createTeamCleanupToolCompat(stateDir, runtimeConfig, pruneAgentConfig), { name: "team_cleanup" });

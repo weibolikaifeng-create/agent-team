@@ -17,6 +17,12 @@ export async function readStateFromDisk(stateDir) {
                     record.executions = [];
                 if (!record.sessionKey)
                     record.sessionKey = "";
+                // Backward compatibility: ensure sessionKey exists in execution records
+                for (const exec of record.executions) {
+                    if (!exec.sessionKey) {
+                        exec.sessionKey = record.sessionKey || "";
+                    }
+                }
             }
             return data;
         }
@@ -120,6 +126,12 @@ export class TeamStateManager {
                     // Backward compatibility: ensure sessionKey exists (default to empty string for old records)
                     if (!record.sessionKey) {
                         record.sessionKey = "";
+                    }
+                    // Backward compatibility: ensure sessionKey exists in execution records
+                    for (const exec of record.executions) {
+                        if (!exec.sessionKey) {
+                            exec.sessionKey = record.sessionKey || "";
+                        }
                     }
                     this.teams.set(record.teamId, record);
                 }

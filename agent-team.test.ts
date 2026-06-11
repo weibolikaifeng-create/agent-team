@@ -63,7 +63,7 @@ describe("TeamStateManager", () => {
     status: "ready" as const,
     createdAt: new Date().toISOString(),
     sessionKey: "session-default",
-    executions: [] as { executionId: string; taskPrompt: string; taskName: string; status: "pending" | "running" | "completed" | "failed"; createdAt: string; completedAt?: string }[],
+    executions: [] as { executionId: string; taskPrompt: string; taskName: string; status: "pending" | "running" | "completed" | "failed"; createdAt: string; completedAt?: string; sessionKey: string }[],
   });
 
   beforeEach(async () => {
@@ -201,6 +201,7 @@ describe("TeamStateManager", () => {
       taskName: "AI Article",
       status: "running",
       createdAt: new Date().toISOString(),
+      sessionKey: "session-default",
     });
     const team = manager.getTeam("test-team")!;
     expect(team.executions.length).toBe(1);
@@ -216,6 +217,7 @@ describe("TeamStateManager", () => {
       taskName: "AI Article",
       status: "running",
       createdAt: new Date().toISOString(),
+      sessionKey: "session-default",
     });
     manager.updateExecutionStatus("test-team", "exec-1", "completed");
     const exec = manager.getTeam("test-team")!.executions[0]!;
@@ -232,6 +234,7 @@ describe("TeamStateManager", () => {
       taskName: "Task 1",
       status: "running",
       createdAt: new Date().toISOString(),
+      sessionKey: "session-default",
     });
     expect(manager.getNextExecutionId("test-team")).toBe("exec-2");
   });
@@ -245,6 +248,7 @@ describe("TeamStateManager", () => {
       status: "completed",
       createdAt: new Date().toISOString(),
       completedAt: new Date().toISOString(),
+      sessionKey: "session-default",
     });
     await manager.saveToDisk(tmpDir);
 
