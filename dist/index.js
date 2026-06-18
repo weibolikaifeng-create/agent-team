@@ -16,6 +16,7 @@ function applyAgentConfig(cfg, params) {
         ...(params.workspace ? { workspace: params.workspace } : {}),
         ...(params.agentDir ? { agentDir: params.agentDir } : {}),
         ...(params.model ? { model: params.model } : {}),
+        ...(params.tools ? { tools: params.tools } : {}),
     };
     const nextList = [...list];
     if (index >= 0) {
@@ -74,11 +75,13 @@ const plugin = {
         }, { name: "team_plan" });
         api.registerTool((ctx) => {
             const sessionKey = ctx.sessionKey ?? "default";
-            return createTeamProvisionTool(stateDir, sessionKey, runtimeConfig, applyAgentConfig);
+            const messageChannel = ctx.messageChannel;
+            return createTeamProvisionTool(stateDir, sessionKey, runtimeConfig, applyAgentConfig, messageChannel);
         }, { name: "team_provision" });
         api.registerTool((ctx) => {
             const sessionKey = ctx.sessionKey ?? "default";
-            return createTeamExecuteToolCompat(stateDir, sessionKey);
+            const messageChannel = ctx.messageChannel;
+            return createTeamExecuteToolCompat(stateDir, sessionKey, messageChannel);
         }, { name: "team_execute" });
         api.registerTool(createTeamCompleteTool(stateDir), { name: "team_complete" });
         api.registerTool(createTeamUpdateProgressTool(stateDir), { name: "team_update_progress" });

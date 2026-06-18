@@ -22,6 +22,7 @@ export type TeamRecord = {
   teamName: string;
   templateId: string;
   leaderAgentId: string;
+  leaderName: string;
   workers: WorkerSpec[];
   collaborationMode: CollaborationMode;
   status: TeamStatus;

@@ -17,7 +17,7 @@ const TeamExecuteSchema = Type.Object({
     }),
     channel_info: ChannelInfoSchema,
 }, { additionalProperties: false });
-export function createTeamExecuteToolCompat(stateDir, sessionKey) {
+export function createTeamExecuteToolCompat(stateDir, sessionKey, messageChannel) {
     return {
         name: "team_execute",
         description: "Start a team execution. Creates an execution instance with todo.md and output/ directory. Returns the sessions_send parameters you must call to activate the Leader agent. The Leader will push progress updates directly to the channel using the message tool.",
@@ -87,12 +87,14 @@ export function createTeamExecuteToolCompat(stateDir, sessionKey) {
             team.currentExecutionId = executionId;
             team.status = "running";
             await writeStateToDisk(stateDir, state);
-            // Embed channel_info and executionId into the task message so the Leader knows where to push progress updates
             // Embed channel info, team ID, execution ID, and exec dir into the task message
+            const directOutputChannels = ["webchat", "astron-claw"];
+            const isDirectOutput = directOutputChannels.includes(messageChannel ?? "");
             const taskWithCallback = `__teamId__: ${team_id}\n` +
                 `__executionId__: ${executionId}\n` +
                 `__execDir__: ${execDir}\n` +
-                `__channelInfo__: ${JSON.stringify(channel_info)}\n\n${task}`;
+                (isDirectOutput ? "" : `__channelInfo__: ${JSON.stringify(channel_info)}\n`) +
+                `\n${task}`;
             return {
                 content: [
                     {

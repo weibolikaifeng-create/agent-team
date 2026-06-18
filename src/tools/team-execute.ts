@@ -36,7 +36,7 @@ type TeamExecuteParams = {
   channel_info: ChannelInfo;
 };
 
-export function createTeamExecuteToolCompat(stateDir: string, sessionKey: string): AnyAgentTool {
+export function createTeamExecuteToolCompat(stateDir: string, sessionKey: string, messageChannel?: string): AnyAgentTool {
   return {
     name: "team_execute",
     description:
@@ -116,13 +116,15 @@ export function createTeamExecuteToolCompat(stateDir: string, sessionKey: string
       team.status = "running";
       await writeStateToDisk(stateDir, state);
 
-      // Embed channel_info and executionId into the task message so the Leader knows where to push progress updates
       // Embed channel info, team ID, execution ID, and exec dir into the task message
+      const directOutputChannels = ["webchat", "astron-claw"];
+      const isDirectOutput = directOutputChannels.includes(messageChannel ?? "");
       const taskWithCallback =
         `__teamId__: ${team_id}\n` +
         `__executionId__: ${executionId}\n` +
         `__execDir__: ${execDir}\n` +
-        `__channelInfo__: ${JSON.stringify(channel_info)}\n\n${task}`;
+        (isDirectOutput ? "" : `__channelInfo__: ${JSON.stringify(channel_info)}\n`) +
+        `\n${task}`;
 
       return {
         content: [

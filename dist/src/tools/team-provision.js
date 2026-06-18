@@ -3,7 +3,7 @@ import path from "node:path";
 import crypto from "node:crypto";
 import { Type } from "typebox";
 import { TEAM_DIR_NAME, MAX_WORKERS, MAX_SPAWN_DEPTH, EXECUTIONS_DIR } from "../constants.js";
-import { generateSoulMd, generateAgentsMd } from "../soul-generator.js";
+import { generateAgentsMd, generateAgentsMdWeb } from "../soul-generator.js";
 import { readStateFromDisk, writeStateToDisk } from "../team-state.js";
 import { TEMPLATES } from "../templates.js";
 function stringEnum(values, description) {
@@ -15,6 +15,7 @@ function stringEnum(values, description) {
 }
 const WorkerSchema = Type.Object({
     id: Type.String({ description: "Worker identifier (lowercase, no spaces)." }),
+    name: Type.String({ description: "Worker display name in Chinese (e.g. '搜索专家')." }),
     role: Type.String({ description: "Worker role name." }),
     responsibility: Type.String({ description: "What this worker does." }),
 });
@@ -26,6 +27,7 @@ const TeamProvisionSchema = Type.Object({
     template_id: Type.Optional(Type.String({
         description: "Template ID to use. If omitted, leader/workers/collaboration_mode must be provided.",
     })),
+    leader_name: Type.Optional(Type.String({ description: "Leader display name in Chinese (e.g. '研究总监')." })),
     leader_role: Type.Optional(Type.String({ description: "Custom leader role name." })),
     leader_personality: Type.Optional(Type.String({ description: "Custom leader personality description." })),
     leader_core_instruction: Type.Optional(Type.String({ description: "Custom core instruction for the leader." })),
@@ -37,10 +39,10 @@ const TeamProvisionSchema = Type.Object({
         description: "The task this team will work on.",
     }),
 }, { additionalProperties: false });
-export function createTeamProvisionTool(stateDir, systemSessionKey, runtimeConfig, applyAgentConfig) {
+export function createTeamProvisionTool(stateDir, systemSessionKey, runtimeConfig, applyAgentConfig, messageChannel) {
     return {
         name: "team_provision",
-        description: "Create a new multi-agent team. Provisions a Leader agent with workspace, SOUL.md, and AGENTS.md. The Leader will orchestrate workers via sessions_spawn.",
+        description: "Create a new multi-agent team. Provisions a Leader agent with workspace and AGENTS.md. The Leader will orchestrate workers via sessions_spawn.",
         parameters: TeamProvisionSchema,
         async execute(_toolCallId, params) {
             const { task } = params;
@@ -65,6 +67,7 @@ export function createTeamProvisionTool(stateDir, systemSessionKey, runtimeConfi
                 };
             }
             const leaderRole = params.leader_role ?? template?.leader.role ?? "Team Leader";
+            const leaderName = params.leader_name ?? template?.leader.name ?? leaderRole;
             const leaderPersonality = params.leader_personality ??
                 template?.leader.personality ??
                 "Professional, organized, results-oriented.";
@@ -97,26 +100,32 @@ export function createTeamProvisionTool(stateDir, systemSessionKey, runtimeConfi
             await fs.mkdir(path.join(workspaceDir, "scratch"), { recursive: true });
             // Create executions directory for execution instances.
             await fs.mkdir(path.join(teamDir, EXECUTIONS_DIR), { recursive: true });
-            // Generate and write SOUL.md.
-            const soulContent = generateSoulMd({
-                teamId: team_id,
-                teamName,
-                leaderRole,
-                leaderPersonality,
-                coreInstruction,
-                workers,
-                collaborationMode,
-                modeInstruction,
-                task,
-            });
-            await fs.writeFile(path.join(workspaceDir, "SOUL.md"), soulContent, "utf-8");
-            // Generate and write AGENTS.md + symlink CLAUDE.md.
-            const agentsContent = generateAgentsMd({
-                teamId: team_id,
-                teamName,
-                leaderRole,
-                workers,
-            });
+            // Detect channel and generate appropriate AGENTS.md content.
+            const directOutputChannels = ["webchat", "astron-claw"];
+            const isDirectOutput = directOutputChannels.includes(messageChannel ?? "");
+            const agentsContent = isDirectOutput
+                ? generateAgentsMdWeb({
+                    teamId: team_id,
+                    teamName,
+                    leaderRole,
+                    leaderPersonality,
+                    coreInstruction,
+                    workers,
+                    collaborationMode,
+                    modeInstruction,
+                    task,
+                })
+                : generateAgentsMd({
+                    teamId: team_id,
+                    teamName,
+                    leaderRole,
+                    leaderPersonality,
+                    coreInstruction,
+                    workers,
+                    collaborationMode,
+                    modeInstruction,
+                    task,
+                });
             await fs.writeFile(path.join(workspaceDir, "AGENTS.md"), agentsContent, "utf-8");
             const claudeMdPath = path.join(workspaceDir, "CLAUDE.md");
             try {
@@ -134,6 +143,7 @@ export function createTeamProvisionTool(stateDir, systemSessionKey, runtimeConfi
                 agentId: leaderAgentId,
                 name: teamName,
                 workspace: workspaceDir,
+                ...(isDirectOutput ? { tools: { deny: ["message"] } } : {}),
             });
             // Ensure subagents can spawn deep enough: Leader (depth 1) → Workers (depth 2+).
             const agentsObj = nextCfg.agents ?? {};
@@ -177,6 +187,7 @@ export function createTeamProvisionTool(stateDir, systemSessionKey, runtimeConfi
                 teamName,
                 templateId: params.template_id ?? "custom",
                 leaderAgentId,
+                leaderName,
                 workers,
                 collaborationMode,
                 status: "ready",

@@ -44,16 +44,18 @@ sessions_send(agentId: "leader-existing-team-abc123", ...)  ❌ 不要这样做
 
 ### 2. 创建：`team_provision`
 
-创建 Leader 智能体，即 `leader-<team_id>`；在团队工作区下写入 **SOUL.md** 和 **AGENTS.md**；将智能体注册到配置中；并把团队记录到插件状态里。
+创建 Leader 智能体，即 `leader-<team_id>`；在团队工作区下写入 **AGENTS.md**（Leader 的完整提示词）；将智能体注册到配置中；并把团队记录到插件状态里。
 
-**必填：** `team_id`、`task`，该任务会写入 Leader 的 SOUL 作为使命；`session_key`，用于把团队绑定到当前会话。
+**必填：** `team_id`、`task`，该任务会写入 Leader 的 AGENTS.md 作为使命。
 
 你可以二选一：
 
 - 提供 **`template_id`**，见下方表格；或
 - 省略 `template_id`，并提供 **`workers`** 和 **`collaboration_mode`**，可选值为 `pipeline`、`mapreduce`、`supervisor`。
 
-可选覆盖项：`team_name`、`leader_role`、`leader_personality`、`leader_core_instruction`、`workers`。当 `workers` 与 `template_id` 一起使用时，会替换模板中的工作人员配置。
+可选覆盖项：`team_name`、`leader_name`（Leader 中文显示名）、`leader_role`、`leader_personality`、`leader_core_instruction`、`workers`。当 `workers` 与 `template_id` 一起使用时，会替换模板中的工作人员配置。
+
+**workers 字段格式：** 每个 worker 包含 `id`（标识符）、`name`（中文显示名，必填）、`role`（角色名）、`responsibility`（职责描述）。
 
 插件会强制限制最大 worker 数量，目前为 5。自定义团队必须保持在该限制内。
 
@@ -63,8 +65,7 @@ sessions_send(agentId: "leader-existing-team-abc123", ...)  ❌ 不要这样做
 team_provision(
   team_id: "ev-research-2024",
   template_id: "deep-research",
-  task: "Research the EV industry trends in China, focusing on...",
-  session_key: "<current_session_key>"
+  task: "Research the EV industry trends in China, focusing on..."
 )
 ```
 
@@ -108,10 +109,10 @@ team_execute(
 - **`sessions_send_params`**：使用这些参数调用 `sessions_send`：
   - `agentId`：Leader 智能体 ID。
   - `sessionKey`：Leader 的 session key。
-  - `message`：带有 `__teamId__`、`__executionId__`、`__execDir__`、`__channelInfo__` 元数据前缀，后面接任务内容。
+  - `message`：带有 `__teamId__`、`__executionId__`、`__execDir__` 元数据前缀（非直接输出渠道还会包含 `__channelInfo__`），后面接任务内容。
   - `timeoutSeconds`：`0`，表示 fire-and-forget。
 
-调用 `sessions_send` 并传入这些参数后，告诉用户团队正在工作，然后结束你的回合。Leader 会直接向频道推送更新。
+调用 `sessions_send` 并传入这些参数后，告诉用户团队正在工作，然后结束你的回合。Leader 会直接向频道推送更新（webchat/astron-claw 渠道通过文本直接输出，其他渠道通过 message 工具推送）。
 
 **🚨 警告：** 绝不要在没有先通过 `team_execute` 的情况下，直接调用 `sessions_send` 给 Leader。这样会绕过执行跟踪并破坏进度监控。
 
@@ -123,7 +124,7 @@ team_execute(
 team_cleanup(team_id: "ev-research-2024")
 ```
 
-这会**从配置中移除 Leader 智能体**，包括相关绑定和 agent-to-agent allow 条目；**从插件状态中移除该团队**；但**不会删除**团队工作区文件夹。产物仍会保留在配置的状态目录下，例如 `teams/<team_id>/...`，用户仍然可以访问这些文件。
+这会**从配置中移除 Leader 智能体**，包括相关绑定和 agent-to-agent allow 条目；**将团队状态标记为 completed**（状态记录保留供查阅）；**不会删除**团队工作区文件夹。产物仍会保留在配置的状态目录下，例如 `teams/<team_id>/...`，用户仍然可以访问这些文件。
 
 ## 活跃团队，主智能体
 
@@ -161,7 +162,7 @@ team_cleanup(team_id: "ev-research-2024")
 
 ## 处理结果
 
-Leader 会使用 `message` 工具直接向频道推送进度更新。你不需要转发消息。
+Leader 会直接向频道推送进度更新（webchat/astron-claw 渠道通过文本直接输出，其他渠道通过 message 工具推送），你不需要转发消息。
 
 ### 向团队传递频道信息
 

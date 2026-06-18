@@ -3,6 +3,7 @@ export type CollaborationMode = "pipeline" | "mapreduce" | "supervisor";
 
 export type WorkerSpec = {
   id: string;
+  name: string;
   role: string;
   responsibility: string;
 };
@@ -13,6 +14,7 @@ export type TeamTemplate = {
   description: string;
   keywords: string[];
   leader: {
+    name: string;
     role: string;
     personality: string;
     coreInstruction: string;
@@ -29,6 +31,7 @@ export const TEMPLATES: TeamTemplate[] = [
     description: "Parallel search and investigation on multiple aspects of a topic, followed by synthesis.",
     keywords: ["search", "investigate", "find", "lookup", "query", "discover", "research", "scan", "browse", "research", "investigate", "survey", "literature", "study", "explore", "deep dive"],
     leader: {
+      name: "研究协调员",
       role: "Research Coordinator",
       personality: "Organized, strategic, excellent at synthesizing disparate information sources into coherent narratives.",
       coreInstruction:
@@ -37,16 +40,19 @@ export const TEMPLATES: TeamTemplate[] = [
     workers: [
       {
         id: "search-specialist-1",
+        name: "搜索专家1",
         role: "Search Specialist 1",
         responsibility: "Conduct targeted research on first aspect of the topic, find 1-3 key sources.",
       },
       {
         id: "search-specialist-2",
+        name: "搜索专家2",
         role: "Search Specialist 2",
         responsibility: "Conduct targeted research on second aspect of the topic, find 1-3 key sources.",
       },
       {
         id: "report-writer",
+        name: "报告撰写",
         role: "Report Writer",
         responsibility: "Create comprehensive research report based on all search specialists' findings, synthesizing information into cohesive narrative with proper citations.",
       },
@@ -61,6 +67,7 @@ export const TEMPLATES: TeamTemplate[] = [
     description: "Research-write-review pipeline for polished content.",
     keywords: ["write", "article", "blog", "content", "copy", "draft", "essay", "report"],
     leader: {
+      name: "编辑总监",
       role: "Editorial Director",
       personality: "Creative yet disciplined, focuses on clarity and audience engagement.",
       coreInstruction:
@@ -69,18 +76,21 @@ export const TEMPLATES: TeamTemplate[] = [
     workers: [
       {
         id: "researcher",
+        name: "调研员",
         role: "Researcher",
         responsibility:
           "Gather background information, key facts, and reference material for the topic.",
       },
       {
         id: "writer",
+        name: "撰稿人",
         role: "Writer",
         responsibility:
           "Draft well-structured content based on research, matching the requested tone and format.",
       },
       {
         id: "reviewer",
+        name: "审稿人",
         role: "Reviewer",
         responsibility:
           "Review drafts for accuracy, clarity, grammar, and adherence to requirements.",
@@ -105,6 +115,7 @@ export const TEMPLATES: TeamTemplate[] = [
       "trends",
     ],
     leader: {
+      name: "数据负责人",
       role: "Data Lead",
       personality: "Precision-oriented, insists on clean methodology and reproducible results.",
       coreInstruction:
@@ -113,17 +124,20 @@ export const TEMPLATES: TeamTemplate[] = [
     workers: [
       {
         id: "data-collector",
+        name: "数据采集员",
         role: "Data Collector",
         responsibility: "Gather, clean, and structure raw data from specified sources.",
       },
       {
         id: "analyst",
+        name: "分析师",
         role: "Analyst",
         responsibility:
           "Perform statistical analysis, identify trends, and extract actionable insights.",
       },
       {
         id: "visualizer",
+        name: "可视化师",
         role: "Visualizer",
         responsibility: "Create clear summaries, tables, and descriptions of data visualizations.",
       },
@@ -146,6 +160,7 @@ export const TEMPLATES: TeamTemplate[] = [
       "landscape",
     ],
     leader: {
+      name: "策略总监",
       role: "Strategy Director",
       personality: "Analytical, big-picture thinker, skilled at comparative frameworks.",
       coreInstruction:
@@ -154,22 +169,26 @@ export const TEMPLATES: TeamTemplate[] = [
     workers: [
       {
         id: "researcher-a",
+        name: "调研员A",
         role: "Researcher A",
         responsibility: "Deep-dive research on the first subject or competitor.",
       },
       {
         id: "researcher-b",
+        name: "调研员B",
         role: "Researcher B",
         responsibility: "Deep-dive research on the second subject or competitor.",
       },
       {
         id: "analyst",
+        name: "分析师",
         role: "Analyst",
         responsibility:
           "Merge parallel research outputs, identify differentiators and commonalities.",
       },
       {
         id: "reporter",
+        name: "报告撰写",
         role: "Reporter",
         responsibility: "Compile a structured comparative report with recommendations.",
       },
@@ -184,6 +203,7 @@ export const TEMPLATES: TeamTemplate[] = [
     description: "Parallel perspectives from optimist, critic, and pragmatist.",
     keywords: ["brainstorm", "ideate", "ideas", "creative", "innovate", "options", "possibilities"],
     leader: {
+      name: "引导师",
       role: "Facilitator",
       personality: "Balanced, encourages diverse viewpoints, skilled at synthesis.",
       coreInstruction:
@@ -192,18 +212,21 @@ export const TEMPLATES: TeamTemplate[] = [
     workers: [
       {
         id: "optimist",
+        name: "乐观者",
         role: "Optimist",
         responsibility:
           "Explore the most ambitious possibilities, highlight opportunities and upside potential.",
       },
       {
         id: "critic",
+        name: "批评者",
         role: "Critic",
         responsibility:
           "Identify risks, potential failures, edge cases, and weaknesses in proposed ideas.",
       },
       {
         id: "pragmatist",
+        name: "务实者",
         role: "Pragmatist",
         responsibility: "Focus on feasibility, implementation complexity, and practical tradeoffs.",
       },

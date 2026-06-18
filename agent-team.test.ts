@@ -2,7 +2,7 @@ import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
-import { generateSoulMd, generateAgentsMd } from "./src/soul-generator.js";
+import { generateAgentsMd } from "./src/soul-generator.js";
 import { TeamStateManager } from "./src/team-state.js";
 import { TEMPLATES, scoreTemplate, rankTemplates } from "./src/templates.js";
 
@@ -305,16 +305,16 @@ describe("soul-generator", () => {
     leaderPersonality: "Methodical and thorough.",
     coreInstruction: "Coordinate three-stage research.",
     workers: [
-      { id: "researcher", role: "Researcher", responsibility: "Gather data." },
-      { id: "analyst", role: "Analyst", responsibility: "Analyze findings." },
+      { id: "researcher", role: "Researcher", name: "研究员", responsibility: "Gather data." },
+      { id: "analyst", role: "Analyst", name: "分析师", responsibility: "Analyze findings." },
     ],
     collaborationMode: "pipeline" as const,
     modeInstruction: "Run sequentially: researcher → analyst.",
     task: "Research AI trends",
   };
 
-  it("generateSoulMd includes all required sections", () => {
-    const soul = generateSoulMd(baseParams);
+  it("generateAgentsMd includes all required sections", () => {
+    const soul = generateAgentsMd(baseParams);
     expect(soul).toContain("Research Director");
     expect(soul).toContain("Methodical and thorough.");
     expect(soul).toContain("Coordinate three-stage research.");
@@ -323,46 +323,30 @@ describe("soul-generator", () => {
     expect(soul).toContain("Research AI trends");
     expect(soul).toContain("sessions_spawn");
     expect(soul).toContain("message");
-    expect(soul).toContain("Pipeline Execution Guide");
+    expect(soul).toContain("流水线执行指南");
   });
 
-  it("generateSoulMd uses mapreduce guide for mapreduce mode", () => {
-    const soul = generateSoulMd({
+  it("generateAgentsMd uses mapreduce guide for mapreduce mode", () => {
+    const soul = generateAgentsMd({
       ...baseParams,
       collaborationMode: "mapreduce",
     });
-    expect(soul).toContain("Map-Reduce Execution Guide");
+    expect(soul).toContain("Map-Reduce 执行指南");
   });
 
-  it("generateSoulMd uses supervisor guide for supervisor mode", () => {
-    const soul = generateSoulMd({
+  it("generateAgentsMd uses supervisor guide for supervisor mode", () => {
+    const soul = generateAgentsMd({
       ...baseParams,
       collaborationMode: "supervisor",
     });
-    expect(soul).toContain("Supervisor Execution Guide");
+    expect(soul).toContain("监督者执行指南");
   });
 
-  it("generateSoulMd includes execution tracking section", () => {
-    const soul = generateSoulMd(baseParams);
-    expect(soul).toContain("Execution Tracking");
+  it("generateAgentsMd includes execution tracking section", () => {
+    const soul = generateAgentsMd(baseParams);
+    expect(soul).toContain("进度跟踪");
     expect(soul).toContain("todo.md");
     expect(soul).toContain("__execDir__/output/");
     expect(soul).toContain("__executionId__");
-  });
-
-  it("generateAgentsMd produces a markdown table", () => {
-    const md = generateAgentsMd({
-      teamId: "test-123",
-      teamName: "Test Team",
-      leaderRole: "Director",
-      workers: [
-        { id: "w1", role: "Worker 1", responsibility: "Task A" },
-        { id: "w2", role: "Worker 2", responsibility: "Task B" },
-      ],
-    });
-    expect(md).toContain("# Team: Test Team");
-    expect(md).toContain("| Director (Leader)");
-    expect(md).toContain("| Worker 1 |");
-    expect(md).toContain("| Worker 2 |");
   });
 });

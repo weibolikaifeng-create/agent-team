@@ -15,11 +15,27 @@ type AgentEntry = {
   workspace?: string;
   agentDir?: string;
   model?: string;
+  tools?: {
+    deny?: string[];
+    allow?: string[];
+    alsoAllow?: string[];
+  };
 };
 
 function applyAgentConfig(
   cfg: Record<string, any>,
-  params: { agentId: string; name?: string; workspace?: string; agentDir?: string; model?: string },
+  params: {
+    agentId: string;
+    name?: string;
+    workspace?: string;
+    agentDir?: string;
+    model?: string;
+    tools?: {
+      deny?: string[];
+      allow?: string[];
+      alsoAllow?: string[];
+    };
+  },
 ): Record<string, any> {
   const agentId = params.agentId.toLowerCase();
   const list: AgentEntry[] = (cfg as any).agents?.list ?? [];
@@ -31,6 +47,7 @@ function applyAgentConfig(
     ...(params.workspace ? { workspace: params.workspace } : {}),
     ...(params.agentDir ? { agentDir: params.agentDir } : {}),
     ...(params.model ? { model: params.model } : {}),
+    ...(params.tools ? { tools: params.tools } : {}),
   };
   const nextList = [...list];
   if (index >= 0) {
@@ -98,16 +115,19 @@ const plugin = {
     }, { name: "team_plan" });
     api.registerTool((ctx: any) => {
       const sessionKey = ctx.sessionKey ?? "default";
+      const messageChannel = ctx.messageChannel;
       return createTeamProvisionTool(
         stateDir,
         sessionKey,
         runtimeConfig,
         applyAgentConfig as Parameters<typeof createTeamProvisionTool>[3],
+        messageChannel,
       );
     }, { name: "team_provision" });
     api.registerTool((ctx: any) => {
       const sessionKey = ctx.sessionKey ?? "default";
-      return createTeamExecuteToolCompat(stateDir, sessionKey);
+      const messageChannel = ctx.messageChannel;
+      return createTeamExecuteToolCompat(stateDir, sessionKey, messageChannel);
     }, { name: "team_execute" });
     api.registerTool(createTeamCompleteTool(stateDir), { name: "team_complete" });
     api.registerTool(createTeamUpdateProgressTool(stateDir), { name: "team_update_progress" });

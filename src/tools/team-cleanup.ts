@@ -27,7 +27,7 @@ export function createTeamCleanupToolCompat(
   return {
     name: "team_cleanup",
     description:
-      "Remove a team: remove the agent from config, clean up the workspace directory, and clear team state.",
+      "Remove a team: remove the agent from config and mark team as completed. Workspace directory and state records are preserved.",
     parameters: TeamCleanupSchema,
     async execute(_toolCallId: string, params: { team_id: string }) {
       const { team_id } = params;
@@ -76,10 +76,10 @@ export function createTeamCleanupToolCompat(
       const teamDir = path.join(stateDir, TEAM_DIR_NAME, team_id);
       results.push(`Workspace preserved at: ${teamDir}`);
 
-      // Remove from state and persist.
-      state.teams = state.teams.filter((t) => t.teamId !== team_id);
+      // Mark team as completed in state (preserve for records).
+      team.status = "completed";
       await writeStateToDisk(stateDir, state);
-      results.push("Team state cleared.");
+      results.push("Team status set to completed (state preserved for records).");
 
       return {
         content: [
