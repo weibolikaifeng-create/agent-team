@@ -1,12 +1,11 @@
 {
-  "id": "agent-team",
+  "id": "astron-agent-team",
   "name": "Agent Team",
   "description": "Dynamic multi-agent team orchestration with template-based provisioning.",
   "enabledByDefault": true,
   "activation": {
     "onStartup": true
   },
-  "skills": ["./skills"],
   "contracts": {
     "tools": [
       "team_plan",

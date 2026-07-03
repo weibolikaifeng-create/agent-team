@@ -14,12 +14,6 @@ const TeamCompleteSchema = Type.Object({
     execution_id: Type.String({
         description: "Execution ID (from __executionId__ in task message).",
     }),
-    result_summary: Type.String({
-        description: "任务完成总结（中文），使用以下格式输出：\n\n[开场白]：用口语化的方式告知用户任务已完成，例如'您安排的xxx任务已顺利完成，可以查看任务结果了，详情如下：'（根据具体任务灵活调整，不要写死）\n\n任务：<重述原始任务内容>\n\n执行摘要：\n<用3-5句话总结最重要的内容，面向最终用户>\n\n详细结果：\n<综合所有工作者的发现，按主题组织，不要按工作者分组>\n\n注意：不要在总结中出现产物名称或者路径的描述。",
-    }),
-    final_artifact_paths: Type.Optional(Type.Array(Type.String(), {
-        description: "最终产物的URL列表，严禁填写任何中间产物、草稿、临时文件、工作日志、分析笔记、缓存文件、worker 输出草稿、未整合结果或仅供内部处理的文件路径。将中间产物写入此参数会导致执行结果错误、任务失败，如不允许传入调研任务过程中搜索工作者产出的文件。",
-    })),
 }, { additionalProperties: false });
 async function tryUploadArtifact(artifactPath) {
     // Check if upload script exists
@@ -77,10 +71,10 @@ async function writeResultMd(execDir, summary, artifactResults) {
 export function createTeamCompleteTool(stateDir) {
     return {
         name: "team_complete",
-        description: "Mark a team execution as completed. MUST be called by Leader agent when all work is finished. Accepts a result summary and optional final artifact path; uploads the artifact to S3 and writes result.md to the execution output directory. This updates execution status and allows the team to be reused.",
+        description: "Mark a team execution as completed. MUST be called by Leader agent when all work is finished. This updates execution status and allows the team to be reused.",
         parameters: TeamCompleteSchema,
         async execute(_toolCallId, params) {
-            const { team_id, execution_id, result_summary, final_artifact_paths } = params;
+            const { team_id, execution_id } = params;
             // 1. Read state file from disk
             let data;
             try {
@@ -141,10 +135,13 @@ export function createTeamCompleteTool(stateDir) {
                     ],
                 };
             }
-            // 5. Upload artifacts (if provided)
+            // 5. Upload artifacts and write result — disabled, kept for future re-enable.
+            const WRITE_RESULT = false;
+            const final_artifact_paths = undefined;
+            const result_summary = "";
             const artifactResults = [];
             let uploadError = null;
-            if (final_artifact_paths && final_artifact_paths.length > 0) {
+            if (WRITE_RESULT && final_artifact_paths && final_artifact_paths.length > 0) {
                 for (const artifactPath of final_artifact_paths) {
                     const uploadResult = await tryUploadArtifact(artifactPath);
                     artifactResults.push({
@@ -156,16 +153,17 @@ export function createTeamCompleteTool(stateDir) {
                     }
                 }
             }
-            // 6. Write result.md to execDir/output/
-            // Derive execDir from stateDir + team_id + execution_id (same logic as team_execute)
-            const execDir = path.join(stateDir, "teams", team_id, "executions", execution_id);
-            try {
-                await writeResultMd(execDir, result_summary, artifactResults);
-            }
-            catch (err) {
-                // Non-fatal — log in response but don't abort
-                uploadError = (uploadError ? uploadError + " | " : "") +
-                    `result.md write failed: ${err.message}`;
+            // 6. Write result.md to execDir/output/ — disabled
+            if (WRITE_RESULT) {
+                const execDir = path.join(stateDir, "teams", team_id, "executions", execution_id);
+                try {
+                    await writeResultMd(execDir, result_summary, artifactResults);
+                }
+                catch (err) {
+                    // Non-fatal — log in response but don't abort
+                    uploadError = (uploadError ? uploadError + " | " : "") +
+                        `result.md write failed: ${err.message}`;
+                }
             }
             // 7. Update execution status
             execution.status = "completed";

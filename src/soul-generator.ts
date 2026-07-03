@@ -312,7 +312,7 @@ __channelInfo__: {"channel":"feishu","target":"ou_xxx","msg_id":"msg_xxx"}
 
 ## 产物文件输出规则
 
-当使用message工具向渠道推送最终结果或者使用team_complete工具时，涉及最终产物的文件必须通过文件上传SKILL（/root/.openclaw/workspace/skills/uploader ）将最终产物上传为URL再进行输出。
+当使用message工具向渠道推送最终结果时，涉及最终产物的文件必须通过文件上传SKILL（/root/.openclaw/workspace/skills/uploader ）将最终产物上传为URL再进行输出。
 不允许将任何中间产物、草稿、临时文件、工作日志、分析笔记、缓存文件、worker 输出草稿、未整合结果或仅供内部处理的文件上传为URL，如不允许将调研任务的搜索工作者的搜索产物文件上传为URL返回。
 
 ## 任务完成
@@ -326,8 +326,6 @@ __channelInfo__: {"channel":"feishu","target":"ou_xxx","msg_id":"msg_xxx"}
 参数：
   team_id: "<来自任务消息中的 __teamId__>"
   execution_id: "<来自任务消息中的 __executionId__>"
-  result_summary: "<轻松的开场 — 如'你交代的 xxx 任务已经完成了，以下是结果：'>\n\n任务：<重述原始任务>\n\n执行摘要：\n<3-5 句面向最终用户 — 最重要的部分>\n\n详细发现：\n<综合所有工作者的内容。按主题组织，而非按工作者。>\n\n注意：不要在摘要中包含文件名或路径。\n\n（使用中文）"
-  final_artifact_paths: 最终产物的URL列表，严禁填写任何中间产物、草稿、临时文件、工作日志、分析笔记、缓存文件、worker 输出草稿、未整合结果或仅供内部处理的文件路径。将中间产物写入此参数会导致执行结果错误、任务失败，如不允许传入调研任务过程中搜索工作者产出的文件。
 \`\`\`
 
 
@@ -645,7 +643,7 @@ ${params.workers.map((w) => `- 工作者 \`${w.id}\` 的输出目录：\`__execD
 
 ## 产物文件输出规则
 
-当使用team_complete工具时，涉及最终产物的文件必须通过文件上传SKILL（/root/.openclaw/workspace/skills/uploader ）将最终产物上传为URL再进行输出。
+当直接输出最终结果文本时，涉及最终产物的文件必须通过文件上传SKILL（/root/.openclaw/workspace/skills/uploader ）将最终产物上传为URL再进行输出。
 不允许将任何中间产物、草稿、临时文件、工作日志、分析笔记、缓存文件、worker 输出草稿、未整合结果或仅供内部处理的文件上传为URL，如不允许将调研任务的搜索工作者的搜索产物文件上传为URL返回。
 
 ## 任务完成
@@ -659,8 +657,6 @@ ${params.workers.map((w) => `- 工作者 \`${w.id}\` 的输出目录：\`__execD
 参数：
   team_id: "<来自任务消息中的 __teamId__>"
   execution_id: "<来自任务消息中的 __executionId__>"
-  result_summary: "<轻松的开场 — 如'你交代的 xxx 任务已经完成了，以下是结果：'>\n\n任务：<重述原始任务>\n\n执行摘要：\n<3-5 句面向最终用户 — 最重要的部分>\n\n详细发现：\n<综合所有工作者的内容。按主题组织，而非按工作者。>\n\n注意：不要在摘要中包含文件名或路径。\n\n（使用中文）"
-  final_artifact_paths: 最终产物的URL列表，严禁填写任何中间产物、草稿、临时文件、工作日志、分析笔记、缓存文件、worker 输出草稿、未整合结果或仅供内部处理的文件路径。将中间产物写入此参数会导致执行结果错误、任务失败，如不允许传入调研任务过程中搜索工作者产出的文件。
 \`\`\`
 
 

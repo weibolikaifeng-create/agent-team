@@ -1,5 +1,5 @@
 {
-  "name": "@openclaw/agent-team",
+  "name": "@openclaw/astron-agent-team",
   "version": "1.1.0",
   "private": true,
   "description": "Dynamic multi-agent team orchestration for OpenClaw",

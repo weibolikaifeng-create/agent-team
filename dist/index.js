@@ -60,7 +60,7 @@ function pruneAgentConfig(cfg, agentId) {
 }
 // ── Plugin entry ──────────────────────────────────────────────────
 const plugin = {
-    id: "agent-team",
+    id: "astron-agent-team",
     name: "Agent Team",
     description: "Dynamic multi-agent team orchestration.",
     register(api) {
