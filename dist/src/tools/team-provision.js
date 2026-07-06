@@ -139,11 +139,19 @@ export function createTeamProvisionTool(stateDir, systemSessionKey, runtimeConfi
             }
             // Register the Leader agent in config.
             const cfg = runtimeConfig.loadConfig();
+            // Always deny the astron-static-team plugin's tools for the leader.
+            // A plugin id in tools.deny blocks all of that plugin's tools (see
+            // denylistBlocksPlugin in core). The `message` tool stays denied only
+            // for direct-output channels, matching the prior behavior.
+            const leaderToolDeny = ["astron-static-team"];
+            if (isDirectOutput) {
+                leaderToolDeny.push("message");
+            }
             let nextCfg = applyAgentConfig(cfg, {
                 agentId: leaderAgentId,
                 name: teamName,
                 workspace: workspaceDir,
-                ...(isDirectOutput ? { tools: { deny: ["message"] } } : {}),
+                tools: { deny: leaderToolDeny },
             });
             // Ensure subagents can spawn deep enough: Leader (depth 1) → Workers (depth 2+).
             const agentsObj = nextCfg.agents ?? {};
