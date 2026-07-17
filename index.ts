@@ -5,6 +5,7 @@ import { createTeamExecuteToolCompat } from "./src/tools/team-execute.js";
 import { createTeamCleanupToolCompat } from "./src/tools/team-cleanup.js";
 import { createTeamCompleteTool } from "./src/tools/team-complete.js";
 import { createTeamUpdateProgressTool } from "./src/tools/team-update-progress.js";
+import { registerArtifactHooks } from "./src/artifacts/hooks.js";
 import type { RuntimeConfig, PruneAgentConfigFn } from "./src/tools/team-cleanup.js";
 
 // Inlined from core to avoid relative path dependency on src/ (not shipped in npm).
@@ -167,6 +168,10 @@ const plugin = {
       return { appendSystemContext: append };
     });
 
+    // Additive: artifact recognition via observational hooks (subagent_spawned,
+    // agent_turn_prepare, after_tool_call, agent_end). Never modifies the tools
+    // or state above; failures inside are swallowed per-handler.
+    registerArtifactHooks(api, stateDir);
   },
 };
 
