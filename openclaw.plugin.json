@@ -19,6 +19,22 @@
   "configSchema": {
     "type": "object",
     "additionalProperties": false,
-    "properties": {}
+    "properties": {
+      "logs": {
+        "type": "boolean",
+        "default": false,
+        "description": "Enable team-level diagnostic logging for artifact recognition."
+      },
+      "artifactLabel": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "enabled": { "type": "boolean", "default": true },
+          "timeoutMs": { "type": "integer", "minimum": 5000, "maximum": 300000 },
+          "provider": { "type": "string" },
+          "model": { "type": "string" }
+        }
+      }
+    }
   }
 }
