@@ -5,6 +5,7 @@ import { createTeamExecuteToolCompat } from "./src/tools/team-execute.js";
 import { createTeamCleanupToolCompat } from "./src/tools/team-cleanup.js";
 import { createTeamCompleteTool } from "./src/tools/team-complete.js";
 import { createTeamUpdateProgressTool } from "./src/tools/team-update-progress.js";
+import { registerArtifactHooks } from "./src/artifacts/hooks.js";
 function applyAgentConfig(cfg, params) {
     const agentId = params.agentId.toLowerCase();
     const list = cfg.agents?.list ?? [];
@@ -108,6 +109,10 @@ const plugin = {
             let append = `\n## Active Agent Teams\n${lines.join("\n")}\n`;
             return { appendSystemContext: append };
         });
+        // Additive: artifact recognition via observational hooks (subagent_spawned,
+        // agent_turn_prepare, after_tool_call, agent_end). Never modifies the tools
+        // or state above; failures inside are swallowed per-handler.
+        registerArtifactHooks(api, stateDir);
     },
 };
 export default plugin;
