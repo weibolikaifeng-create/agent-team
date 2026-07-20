@@ -168,10 +168,11 @@ export function createTeamCompleteTool(stateDir) {
             // 7. Update execution status
             execution.status = "completed";
             execution.completedAt = new Date().toISOString();
-            // 8. Clear currentExecutionId
-            if (team.currentExecutionId === execution_id) {
-                team.currentExecutionId = undefined;
-            }
+            // 8. Keep currentExecutionId pointing at the just-completed execution.
+            //    It is refreshed on the next team_execute, and no team tool gates on
+            //    it being cleared (reuse is gated on status/running only). Keeping it
+            //    lets the leader's agent_end — which fires AFTER team_complete — still
+            //    resolve its execution for artifact labeling.
             // 9. Update team status
             const hasRunning = team.executions.some((e) => e.status === "running");
             if (!hasRunning) {
