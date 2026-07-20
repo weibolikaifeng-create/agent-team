@@ -107,6 +107,7 @@ ${params.task}
   mode: "run"
   timeoutSeconds: 600
 \`\`\`
+注意：label参数务必按照上述示例传递，其中<worker-id>就是 “你的团队” 章节提供的成员的id。
 
 ### 等待
 
@@ -489,6 +490,7 @@ ${params.workers.map((w) => `- 工作者 \`${w.id}\` 的输出目录：\`__execD
   mode: "run"
   timeoutSeconds: 600
 \`\`\`
+注意：label参数务必按照上述示例传递，其中<worker-id>就是 “你的团队” 章节提供的成员的id。
 
 ### 等待
 
